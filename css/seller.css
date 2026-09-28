@@ -1,0 +1,556 @@
+/* ============================================
+   SELLER — Shared Layout & Dashboard
+   ============================================ */
+
+/* ---- Page wrapper ---- */
+.seller-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+/* ---- Page header ---- */
+.seller-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.seller-page__title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--earth);
+  letter-spacing: -0.03em;
+}
+
+.seller-page__subtitle {
+  font-size: 0.9375rem;
+  color: var(--sage);
+  margin-top: 0.25rem;
+}
+
+/* ---- Primary action button ---- */
+.seller-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary);
+  color: var(--earth);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(244, 209, 37, 0.3);
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-fast);
+}
+
+.seller-btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(244, 209, 37, 0.45);
+  transform: translateY(-1px);
+}
+
+.seller-btn-primary .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+/* ---- Secondary button ---- */
+.seller-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: none;
+  border: 1.5px solid var(--border-light);
+  color: var(--sage);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.seller-btn-secondary:hover {
+  border-color: var(--sage);
+  color: var(--earth);
+  background: var(--sage-light);
+}
+
+.seller-btn-secondary .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+/* ---- Danger button ---- */
+.seller-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: none;
+  border: 1.5px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.seller-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+}
+
+.seller-btn-danger .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+/* ---- Stats row ---- */
+.seller-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.seller-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.seller-stat-card__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+.seller-stat-card__icon--yellow {
+  background: rgba(244, 209, 37, 0.15);
+  color: var(--earth);
+}
+.seller-stat-card__icon--green {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+.seller-stat-card__icon--blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+.seller-stat-card__icon--red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.seller-stat-card__icon .material-symbols-outlined {
+  font-size: 1.25rem;
+  font-variation-settings: "FILL" 1;
+}
+
+.seller-stat-card__value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--earth);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.seller-stat-card__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sage);
+}
+
+/* ---- Alert / Flash messages ---- */
+.seller-alert {
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.seller-alert--success {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #15803d;
+}
+
+.seller-alert--error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+
+.seller-alert .material-symbols-outlined {
+  font-size: 1.1rem;
+  font-variation-settings: "FILL" 1;
+  flex-shrink: 0;
+}
+
+/* ---- Food items table ---- */
+.seller-table-wrapper {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.seller-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.seller-table th {
+  background: var(--bg-light);
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sage);
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.seller-table td {
+  padding: 1rem 1.25rem;
+  font-size: 0.9375rem;
+  color: var(--earth);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.seller-table tr:last-child td {
+  border-bottom: none;
+}
+
+.seller-table tr:hover td {
+  background: var(--bg-light);
+}
+
+/* Food image thumbnail */
+.seller-table__thumb {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  border: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.seller-table__thumb-placeholder {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  background: var(--primary-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.seller-table__thumb-placeholder .material-symbols-outlined {
+  font-size: 1.25rem;
+  color: var(--sage);
+  opacity: 0.6;
+}
+
+.seller-table__item-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.seller-table__item-name {
+  font-weight: 700;
+  color: var(--earth);
+  margin-bottom: 0.125rem;
+}
+
+.seller-table__item-desc {
+  font-size: 0.8125rem;
+  color: var(--sage);
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-badge--available {
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+}
+
+.status-badge--hidden {
+  background: rgba(156, 163, 175, 0.15);
+  color: #6b7280;
+}
+
+/* Actions cell */
+.seller-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ============================================
+   SELLER — Food Add / Edit Form
+   ============================================ */
+
+/* ---- Form card ---- */
+.seller-form-card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.seller-form-card__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--earth);
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 0.25rem;
+}
+
+/* ---- Form groups ---- */
+.seller-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.seller-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--earth);
+}
+
+.req {
+  color: #ef4444;
+}
+
+/* ---- Inputs ---- */
+.seller-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--earth);
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  resize: vertical;
+}
+
+.seller-input::placeholder {
+  color: rgba(122, 141, 125, 0.5);
+}
+
+.seller-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(244, 209, 37, 0.2);
+  background: var(--white);
+}
+
+.seller-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* Price prefix */
+.seller-input-wrapper {
+  position: relative;
+}
+
+.seller-input-prefix {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--sage);
+  pointer-events: none;
+}
+
+.seller-input--prefixed {
+  padding-left: 1.75rem;
+}
+
+/* Select */
+select.seller-input {
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* Field error */
+.seller-field-error {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* ---- Upload zone ---- */
+.seller-upload-zone {
+  position: relative;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius-xl);
+  background: var(--bg-light);
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+  cursor: pointer;
+}
+
+.seller-upload-zone:hover,
+.seller-upload-zone.dragover {
+  border-color: var(--primary);
+  background: rgba(244, 209, 37, 0.05);
+}
+
+.seller-upload-zone__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.seller-upload-zone__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  pointer-events: none;
+}
+
+.seller-upload-zone__icon {
+  font-size: 2.5rem;
+  color: var(--sage);
+  opacity: 0.5;
+  font-variation-settings: "FILL" 0;
+}
+
+.seller-upload-zone__text {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--earth);
+}
+
+.seller-upload-zone__sub {
+  font-size: 0.8125rem;
+  color: var(--sage);
+}
+
+.seller-upload-zone__preview {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---- Empty state ---- */
+.seller-empty {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--sage);
+}
+
+.seller-empty .material-symbols-outlined {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: 1rem;
+  opacity: 0.35;
+}
+
+.seller-empty__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--earth);
+  margin-bottom: 0.5rem;
+}
+
+.seller-empty__sub {
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Responsive table scroll ---- */
+@media (max-width: 768px) {
+  .seller-table-wrapper {
+    overflow-x: auto;
+  }
+  .seller-table {
+    min-width: 640px;
+  }
+}
+
+/* ---- Category badge ---- */
+.cat-badge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  background: var(--sage-light);
+  color: var(--sage);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

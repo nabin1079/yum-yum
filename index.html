@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Yum-Yum — Fresh home-style tiffins delivered to your campus." />
+    <title>Fresh Home-Style Tiffins | Yum-Yum</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/navbar.css" />
+    <link rel="stylesheet" href="css/components.css" />
+
+            <!-- Page-specific CSS -->
+                    <link rel="stylesheet" href="css/hero.css" />
+                    <link rel="stylesheet" href="css/pages.css" />
+            </head>
+<body>
+
+<nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+
+        <!-- Logo -->
+        <a href="index.html" class="navbar__logo">
+            <div class="navbar__logo-icon">
+                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">restaurant_menu</span>
+            </div>
+            <span class="navbar__logo-text">Yum-Yum</span>
+        </a>
+
+        <!-- Desktop nav links -->
+        <ul class="navbar__links" id="navbar-links">
+
+                            <li>
+                    <a href="index.html"
+                       class="navbar__link navbar__link--active">
+                        Home
+                    </a>
+                </li>
+                <li>
+                    <a href="buyer/menu.html"
+                       class="navbar__link">
+                        Menu
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html"
+                       class="navbar__link">
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html"
+                       class="navbar__link">
+                        Contact
+                    </a>
+                </li>
+
+        </ul>
+
+        <!-- Right side actions -->
+        <div class="navbar__actions">
+
+                            <!-- Guest — show login + register -->
+                <a href="auth/login.html"    class="navbar__btn-login">Login</a>
+                <a href="auth/register.html" class="navbar__btn-order">Sign Up</a>
+
+            <!-- Mobile hamburger -->
+            <button class="navbar__hamburger" id="navbar-hamburger" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+        </div>
+    </div>
+
+    <div class="navbar__mobile-menu" id="navbar-mobile-menu">
+        <ul class="navbar__mobile-links">
+
+                            <li><a href="index.html">Home</a></li>
+                <li><a href="buyer/menu.html">Menu</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+
+                            <li><a href="auth/login.html">Login</a></li>
+                <li><a href="auth/register.html">Sign Up</a></li>
+
+        </ul>
+    </div>
+</nav>
+<main class="page-main">
+<section class="hero">
+    <div class="hero__inner">
+
+        <!-- Left: copy -->
+        <div class="hero__content" data-reveal>
+            <span class="hero__badge">
+                <span class="material-symbols-outlined">local_fire_department</span>
+                2,000+ students eating well
+            </span>
+
+            <h1 class="hero__heading">
+                Fuel your studies with a
+                <span class="hero__heading-accent">taste of home.</span>
+            </h1>
+
+            <p class="hero__description">
+                Fresh, home-style tiffins delivered directly to your campus or housing —
+                made with love by local cooks who know what comfort food really means.
+            </p>
+
+            <div class="hero__actions">
+                <a href="buyer/menu.html" class="hero__btn-primary">
+                    View Today's Menu
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
+                                    <a href="auth/register.html" class="hero__btn-secondary">
+                        Get Started Free
+                    </a>
+                            </div>
+        </div>
+
+        <!-- Right: image -->
+        <div class="hero__image-wrapper" data-reveal>
+            <div class="hero__image-glow"></div>
+            <img
+                class="hero__image"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdNGg3c-UnjVHb5oLDyxSLtOVeh0GTOb7KUH6H8UjV4_MIGW8gM4SgvfmmKYcgP-Ti8OqQEFOAjZt9Xfm0fgt84TWOqbJ-XMLaiRmcr3hk9QYUMvnl-2RMdpWO6nH2-1PorcbbK1fesEcLn19l4SJYfs_cteV_Bh7WNIsTKC2k3olvOceSAohH8qbJPM67uf9zKvs5cLfLdk31EPTB35CsmFoJ-9bZd6Ed-fwp1IVGEC03LDpy-l6uQpeVXfckN9cNN_RikiRU4tcc"
+                alt="Fresh home-style tiffin meal"
+            />
+            <div class="hero__float-badge">
+                <div class="hero__float-badge-icon">
+                    <span class="material-symbols-outlined">verified</span>
+                </div>
+                <div>
+                    <div class="hero__float-badge-title">Fresh every day</div>
+                    <div class="hero__float-badge-sub">Cooked by local sellers</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section class="how-it-works" data-reveal>
+    <div class="how-it-works__inner">
+        <div class="how-it-works__header">
+            <h2 class="how-it-works__title">How It Works</h2>
+            <p class="how-it-works__subtitle">
+                Getting your daily tiffin is as simple as three steps.
+            </p>
+        </div>
+        <div class="how-it-works__grid">
+            <div class="step-card">
+                <div class="step-card__icon step-card__icon--primary">
+                    <span class="material-symbols-outlined">search</span>
+                </div>
+                <span class="step-card__number">01</span>
+                <h3 class="step-card__title">Browse the Menu</h3>
+                <p class="step-card__description">
+                    Explore fresh meals added daily by local tiffin sellers near your campus.
+                </p>
+            </div>
+            <div class="step-card">
+                <div class="step-card__icon step-card__icon--sage">
+                    <span class="material-symbols-outlined">shopping_cart</span>
+                </div>
+                <span class="step-card__number">02</span>
+                <h3 class="step-card__title">Add to Cart</h3>
+                <p class="step-card__description">
+                    Pick your favourites, adjust quantities, and head to checkout in seconds.
+                </p>
+            </div>
+            <div class="step-card">
+                <div class="step-card__icon step-card__icon--earth">
+                    <span class="material-symbols-outlined">delivery_dining</span>
+                </div>
+                <span class="step-card__number">03</span>
+                <h3 class="step-card__title">Get It Delivered</h3>
+                <p class="step-card__description">
+                    Sit back and enjoy a home-cooked meal delivered straight to your door.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="menu-section" data-reveal>
+    <div class="menu-section__inner" style="max-width:1280px;margin:0 auto;padding:3rem 1.5rem;">
+
+        <div class="menu-section__header">
+            <div class="menu-section__header-text">
+                <h2 class="menu-section__title">Today's Menu</h2>
+                <p class="menu-section__subtitle">
+                    Freshly listed by our sellers — updated every day.
+                </p>
+            </div>
+            <a href="buyer/menu.html" class="menu-section__view-all">
+                View Full Menu →
+            </a>
+        </div>
+
+                    <div class="menu-section__scroll" id="menu-scroll">
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHjB5HIznoFl3Pj_M_e02EHIwHTcAJF1MIt6cnhIxO0UnWo8YSbxqsag4GTlApIxxRql5R0B9sl8voVrni8Fr1-3QAPngLbyqQLFSheBpyIirjklRGrxPkqQQu88buNAjHgmiNT5Lc17bmPKQlmYwsPZB7V843ErBkVwTO2hl2P0ox6trmagUBj2cnNY8ukbgX8_5C6vqZBniicIzKeoUkMK7TozsYDuwEHSfnEz7_qx78qDCsD-AuqiupTI-uk9ewmf79FrBlzDWf"
+                                    alt="Student Power Bowl"
+                                />
+                                                        <span class="dish-card__badge">Vegan</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Student Power Bowl</h3>
+                            <span class="menu-card__price">
+                                $8.50</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            Our Student Power Bowl is engineered for long study sessions. Packed with complete protei…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoWQikcUyyRsU4djO7HeYwQXGueWYhmIrUuMJLKsDSGaMGfKhNOgZuT_3my6Z_8Rc2he8qdILnaKElm8ZMRLwR4Xa3ToSoGGmQFnrIZuRkFMzR0eNkoyC4EKNwjs9D9XxM73M2lh9xuIQ9IvCVxjTDurFLP1Dj5DGLZVyEh8Bn74ap5zLcR-Hm40W5i3r3VaR3IpvxCefel9f51UjtGKFg5dUWWnuii_b55hSNNKpim5QPMnAJY3IZYb8NB_RRyFXmabZUxcu1wxUi"
+                                    alt="Grandma&#039;s Special Khichdi"
+                                />
+                                                        <span class="dish-card__badge">Vegetarian</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Grandma&#039;s Special Khichdi</h3>
+                            <span class="menu-card__price">
+                                $6.99</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            The ultimate comfort food reimagined. Our Khichdi follows a 3-generation recipe ÔÇö slow-…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4k9n8EYHHKNSAH3dwG24NtmG7nSoms47UEDiTP3PpSZWlLAefzNWsNYBW-dmdsfBpj8BwreSzuUzxiQcZzftpYrP9XfGmSVaPbvYr_WgnwavUpCffy8IifzwtiJxNtt_Vuh2g909hSLpA8w6yrOEz8tpoh4FnK5f3827007OdZRiQ4haEYJ5psF8-H6z3lKKdgKeHo72PhvUo_e3IQdOJrmTlX9v1rFL_wUZqXi8hK1wjNNzJEcBUdqquZz8tZRpKpg8eG0a4Xk-L"
+                                    alt="Herb Roasted Paneer"
+                                />
+                                                        <span class="dish-card__badge">Vegetarian</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Herb Roasted Paneer</h3>
+                            <span class="menu-card__price">
+                                $9.25</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            A fusion favourite that bridges East and West beautifully. Fresh farm paneer is marinated…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-LyIHtefVa0S1ZOj9PdarXoFYBbdWuiHPAn3jFBe6LS4conUigfNhjFra6D-3h3poZiIuoX_G0pxVNF63YxBX1pg8DV19ddHOBDnuFqNoB2CIrzccqm27zRwRTxBQtWhGkAdu0M1TSJDW3mucJcaygStsrtaqKPoouVgDeQ4CkzgkseHZaTUDLlAeT4IT-4YcYC-_-G-LHh5ZVYJoY1P9tF_3-VUSj8bM4F6GbNvXBLJ9m9UIS_HRrYYej1J_2JrF1XgB5C7zdoHx"
+                                    alt="Homestyle Yellow Dal &amp; Rice"
+                                />
+                                                        <span class="dish-card__badge">Vegetarian</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Homestyle Yellow Dal &amp; Rice</h3>
+                            <span class="menu-card__price">
+                                $7.50</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            The dish that started it all. Our signature yellow dal is pressure-cooked with turmeric a…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCM36QZPzBXLBcCA6QG5N_Djz9gHeBVLdRGFjQSrMi4JR0gxgEhrJqINj9j0msF5RyGi17QwwkwALNa2YLF40gFarqle64UxvMRQWnkBUPyoVKCp-QvAYs4AQ8gFK9phgIj5kupOMy0E3PgrYezFdtOT4h8jUFYHE1KFPj1kxPX5pa6mO4FQkvJ6tDj16BFAI2fK7P555V30mEmJQPuDcIw73cloWP8_HV2z5rDO43y6AGc7Sb0RSAFnBwRqi5UHwwPYq_CWtEalRZz"
+                                    alt="Classic Paneer Masala"
+                                />
+                                                        <span class="dish-card__badge">Vegetarian</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Classic Paneer Masala</h3>
+                            <span class="menu-card__price">
+                                $9.99</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            A restaurant-quality curry without the restaurant price tag. Our paneer masala is made wi…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                                    <a href="buyer/product.html"
+                       class="dish-card dish-card--link">
+
+                        <!-- Image -->
+                        <div class="dish-card__image-wrapper">
+                                                            <img
+                                    class="dish-card__image"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9bTI52V88F-Z4wASN0zWlBhRFx7Qy6ES6AR0Gg3thshr756dCmgs-hro7i2M83AGaK0n7lPGFtM9rYzwyaWd39H-VF2najKxLR0FZZ3s1a8zYndhkUHaytmwxfYu45nv6PYXGFrNyN2Xmu2Wu8Oq4Vvp-UFNl7sQagC9h-Aa7A3Qhp0JR_5g4D3cNe0MPNIOnBRZEwIU7FzCQ36dKtTu-z-a5FxVfFp21jtvarTK0P8DKkJdu-KyCRRT9YAUu30OYGvrif4E613LT"
+                                    alt="Spicy Chickpea Spinach"
+                                />
+                                                        <span class="dish-card__badge">Vegan</span>
+                        </div>
+
+                        <!-- Body -->
+                     <div class="menu-card__body">
+                        <div class="menu-card__top">
+                            <h3 class="menu-card__name">
+                                Spicy Chickpea Spinach</h3>
+                            <span class="menu-card__price">
+                                $8.25</span>
+                        </div>
+
+                        <p class="menu-card__desc">
+                            Bold, plant-based, and absolutely packed with nutrition. Canned chickpeas? Never. We soak…</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.75rem;">
+                            <span style="font-size:0.8125rem;font-weight:600;color:var(--sage);">
+                                <span class="material-symbols-outlined"
+                                      style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
+                                    storefront
+                                </span>
+                                Dhruba Raj</span>
+                            <span class="menu-card__btn">View →</span>
+                        </div>
+                    </div>
+
+                    </a>
+                            </div>
+
+            <!-- Scroll nav buttons -->
+            <div class="menu-section__nav" style="margin-top:1.5rem;">
+                <button class="menu-section__nav-btn" id="scroll-left" aria-label="Scroll left">
+                    <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <button class="menu-section__nav-btn" id="scroll-right" aria-label="Scroll right">
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </div>
+
+    </div>
+</section>
+
+<section data-reveal style="background:var(--bg-dark);padding:5rem 1.5rem;text-align:center;">
+    <div style="max-width:600px;margin:0 auto;">
+        <h2 style="font-size:clamp(1.75rem,3vw,2.5rem);font-weight:800;color:var(--white);margin-bottom:1rem;letter-spacing:-0.03em;">
+            Ready to eat well every day?
+        </h2>
+        <p style="color:rgba(255,255,255,0.7);font-size:1.0625rem;line-height:1.7;margin-bottom:2rem;">
+            Join 2,000+ students already enjoying fresh home-cooked tiffins delivered to their door.
+        </p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+            <a href="auth/register.html"
+               style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--primary);color:var(--earth);padding:1rem 2rem;border-radius:var(--radius-xl);font-weight:800;font-size:1rem;text-decoration:none;transition:box-shadow 0.25s ease;">
+                Create Free Account
+                <span class="material-symbols-outlined">arrow_forward</span>
+            </a>
+            <a href="buyer/menu.html"
+               style="display:inline-flex;align-items:center;gap:0.5rem;background:transparent;border:2px solid rgba(255,255,255,0.2);color:var(--white);padding:1rem 2rem;border-radius:var(--radius-xl);font-weight:800;font-size:1rem;text-decoration:none;">
+                Browse Menu
+            </a>
+        </div>
+    </div>
+</section>
+
+<script>
+// Carousel scroll
+(function () {
+    const track = document.getElementById('menu-scroll');
+    if (!track) return;
+    const scrollAmount = 320;
+    document.getElementById('scroll-left')?.addEventListener('click',  () => track.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
+    document.getElementById('scroll-right')?.addEventListener('click', () => track.scrollBy({ left:  scrollAmount, behavior: 'smooth' }));
+})();
+
+// Scroll reveal
+(function () {
+    const els = document.querySelectorAll('[data-reveal]');
+    if (!els.length) return;
+
+    const reveal = () => {
+        els.forEach(el => {
+            el.style.opacity    = '0';
+            el.style.transform  = 'translateY(24px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        });
+
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('revealed');
+                    e.target.style.opacity   = '1';
+                    e.target.style.transform = 'translateY(0)';
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        els.forEach(el => io.observe(el));
+
+        // Immediately reveal elements already in viewport
+        requestAnimationFrame(() => {
+            els.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight) {
+                    el.classList.add('revealed');
+                    el.style.opacity   = '1';
+                    el.style.transform = 'translateY(0)';
+                }
+            });
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', reveal);
+    } else {
+        reveal();
+    }
+})();
+</script>
+
+</main>
+<footer style="background:var(--bg-light);border-top:1px solid var(--border-light);padding:2.5rem 1.5rem;">
+    <div style="max-width:1280px;margin:0 auto;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;margin-bottom:2rem;">
+
+            <div style="display:flex;flex-direction:column;gap:0.375rem;">
+                <a href="index.html"
+                   style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;">
+                    <div style="background:var(--primary);padding:0.375rem;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                        <span class="material-symbols-outlined"
+                              style="font-size:1.25rem;color:var(--earth);font-variation-settings:'FILL' 1;">
+                            restaurant_menu
+                        </span>
+                    </div>
+                    <span style="font-size:1.125rem;font-weight:800;color:var(--earth);letter-spacing:-0.02em;">
+                        Yum-Yum
+                    </span>
+                </a>
+                <p style="font-size:0.8125rem;color:var(--sage);font-weight:500;max-width:220px;line-height:1.5;">
+                    Fresh home-style tiffins delivered to your campus every day.
+                </p>
+            </div>
+
+            <nav style="display:flex;flex-wrap:wrap;gap:0.25rem 0.125rem;align-items:center;">
+                                    <a href="index.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        Home</a>
+                                            <span style="color:var(--border-light);font-size:0.75rem;user-select:none;">·</span>
+                                                        <a href="buyer/menu.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        Menu</a>
+                                            <span style="color:var(--border-light);font-size:0.75rem;user-select:none;">·</span>
+                                                        <a href="about.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        About</a>
+                                            <span style="color:var(--border-light);font-size:0.75rem;user-select:none;">·</span>
+                                                        <a href="contact.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        Contact</a>
+                                            <span style="color:var(--border-light);font-size:0.75rem;user-select:none;">·</span>
+                                                        <a href="auth/login.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        Login</a>
+                                            <span style="color:var(--border-light);font-size:0.75rem;user-select:none;">·</span>
+                                                        <a href="auth/register.html"
+                       style="font-size:0.875rem;font-weight:600;color:var(--sage);text-decoration:none;padding:0.375rem 0.75rem;border-radius:var(--radius-full);transition:color var(--transition-fast),background var(--transition-fast);"
+                       onmouseover="this.style.color='var(--earth)';this.style.background='var(--sage-light)'"
+                       onmouseout="this.style.color='var(--sage)';this.style.background='transparent'">
+                        Sign Up</a>
+                                                </nav>
+
+        </div>
+
+        <!-- Bottom row: copyright + legal -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;padding-top:1.25rem;border-top:1px solid var(--border-light);">
+            <p style="font-size:0.8125rem;color:var(--sage);font-weight:500;">
+                &copy; 2026 Yum-Yum Tiffin Services. All rights reserved.
+            </p>
+            <div style="display:flex;gap:1.25rem;">
+                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                   onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Privacy Policy</a>
+                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                   onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Terms of Service</a>
+                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                   onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Help Center</a>
+            </div>
+        </div>
+
+    </div>
+</footer>
+<!-- /FOOTER -->
+
+<script src="js/main.js"></script>
+
+</body>
+</html>
