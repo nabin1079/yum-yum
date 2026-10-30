@@ -118,7 +118,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php
             $team = [
                 ['name' => 'Dhruba Raj Parajuli', 'role' => 'Team Lead & Authentication', 'avatar' => 'https://ui-avatars.com/api/?name=Dhruba+Raj+Parajuli&background=f4d125&color=2e3a1f'],
-                ['name' => 'Sai Yadav',           'role' => 'Database Integration',       'avatar' => 'https://ui-avatars.com/api/?name=Sai+Yadav&background=f4d125&color=2e3a1f'],
+                ['name' => 'Sai',                 'role' => 'Database Integration',       'avatar' => 'https://ui-avatars.com/api/?name=Sai&background=f4d125&color=2e3a1f'],
                 ['name' => 'Sneha',               'role' => 'Front-end & Home Pages',     'avatar' => 'https://ui-avatars.com/api/?name=Sneha&background=f4d125&color=2e3a1f'],
                 ['name' => 'Sagar',               'role' => 'Seller Dashboard',           'avatar' => 'https://ui-avatars.com/api/?name=Sagar&background=f4d125&color=2e3a1f'],
             ];

@@ -50,14 +50,8 @@ Accounts
 | Name | Part |
 |---|---|
 | Dhruba Raj Parajuli | Team lead, authentication (`authdesign` branch) |
-| Sai Yadav | Database integration (`DatabaseIntegration` branch) |
+| Sai | Database integration (`DatabaseIntegration` branch) |
 | Sneha | Home, about and contact pages, shared header and footer (`Home` branch) |
 | Sagar | Seller dashboard (`SellerDashboard` branch) |
 
 Each feature was built on its own branch and merged into `main` through a pull request.
-
-## Known issues
-
-- the password reset link is shown on the page because email is not set up yet
-- deleting a food item that has already been ordered shows an error, hiding it works instead
-- the old Sprint 1 `.html` pages are still in the repo and will be removed
