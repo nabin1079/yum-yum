@@ -47,7 +47,41 @@
         });
     }
 
-    // Menu category filter
+    /* =====================================================================
+       REFACTORING: Duplicated filter logic -> one shared function
+
+       BEFORE: the menu filter and the order filter each had their own
+       copy of the same 4 steps:
+         1. read the clicked tab's name
+         2. highlight the clicked tab
+         3. read each card's label
+         4. show the card if it matches (or "All"), otherwise hide it
+
+       AFTER: the 4 steps live once in setupFilter(). Each filter only
+       passes in what is different about it.
+       ===================================================================== */
+
+    // Shared filter function (the 4 steps, written once)
+    function setupFilter(tabs, getCards, getCardLabel, markActive) {
+        tabs.forEach(tab => {
+            tab.addEventListener('click', e => {
+                e.preventDefault();
+                const label = tab.textContent.trim();          // step 1
+
+                tabs.forEach(t => markActive(t, t === tab));   // step 2
+
+                getCards().forEach(card => {                   // step 3
+                    const show = label === 'All' || getCardLabel(card) === label;
+                    card.style.display = show ? '' : 'none';   // step 4
+                });
+            });
+        });
+    }
+
+    // Menu category filter (buyer/menu.html)
+
+    /* PREVIOUS CODE (replaced by setupFilter):
+
     const catButtons = document.querySelectorAll('a.filter-btn');
     if (catButtons.length) {
         catButtons.forEach(btn => {
@@ -68,13 +102,32 @@
             });
         });
     }
+    */
 
-    // Order status filter
+    const catButtons = document.querySelectorAll('a.filter-btn');
+    if (catButtons.length) {
+        setupFilter(
+            catButtons,
+            () => document.querySelectorAll('.menu-card'),            // which cards to filter
+            card => {                                                 // how to read a card's label
+                const badge = card.querySelector('.dish-card__badge');
+                return badge ? badge.textContent.trim() : '';
+            },
+            (btn, active) => {                                        // how to highlight a tab
+                btn.classList.toggle('filter-btn--active', active);
+                btn.classList.toggle('filter-btn--inactive', !active);
+            }
+        );
+    }
+
+    // Order status filter (buyer/orders.html, seller/orders.html)
     const statusTabs = document.querySelectorAll('a[href^="?status="]');
     if (statusTabs.length) {
         const activeStyle   = statusTabs[0].getAttribute('style');
         const inactiveStyle = statusTabs[1].getAttribute('style');
         const list = statusTabs[0].parentElement.nextElementSibling;
+
+        /* PREVIOUS CODE (replaced by setupFilter):
 
         statusTabs.forEach(tab => {
             tab.addEventListener('click', e => {
@@ -91,6 +144,18 @@
                 });
             });
         });
+        */
+
+        setupFilter(
+            statusTabs,
+            () => Array.from(list.children),                          // which cards to filter
+            card => {                                                 // how to read a card's label
+                const badge = Array.from(card.querySelectorAll('span'))
+                    .find(s => s.textContent.trim().startsWith('●'));
+                return badge ? badge.textContent.replace('●', '').trim() : '';
+            },
+            (tab, active) => tab.setAttribute('style', active ? activeStyle : inactiveStyle) // how to highlight
+        );
     }
 
     // No backend yet - forms just move to the next page
