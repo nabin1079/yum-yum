@@ -117,11 +117,10 @@ require_once __DIR__ . '/includes/header.php';
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;">
             <?php
             $team = [
-                ['name' => 'Suruchi Shrestha',  'role' => 'Co-Founder & Chief Executive Officer',        'avatar' => 'https://ui-avatars.com/api/?name=Suruchi+Shrestha&background=f4d125&color=2e3a1f'],
-                ['name' => 'Birendra Magar',    'role' => 'Co-Founder & Chief Technology Officer',       'avatar' => 'https://ui-avatars.com/api/?name=Birendra+Magar&background=f4d125&color=2e3a1f'],
-                ['name' => 'Suman Khanal','role' => 'Director of Operations',     'avatar' => 'https://ui-avatars.com/api/?name=Suman+Khanal&background=f4d125&color=2e3a1f'],
-                ['name' => 'Shishir Pokhrel',     'role' => 'Director of Community Partnerships',         'avatar' => 'https://ui-avatars.com/api/?name=Shishir+Pokhrel&background=f4d125&color=2e3a1f'],
-                ['name' => 'Madan Khatiwada',    'role' => 'Business Development Lead',                    'avatar' => 'https://ui-avatars.com/api/?name=Madan+Khatiwada&background=f4d125&color=2e3a1f'],
+                ['name' => 'Dhruba Raj Parajuli', 'role' => 'Team Lead & Authentication', 'avatar' => 'https://ui-avatars.com/api/?name=Dhruba+Raj+Parajuli&background=f4d125&color=2e3a1f'],
+                ['name' => 'Sai Yadav',           'role' => 'Database Integration',       'avatar' => 'https://ui-avatars.com/api/?name=Sai+Yadav&background=f4d125&color=2e3a1f'],
+                ['name' => 'Sneha',               'role' => 'Front-end & Home Pages',     'avatar' => 'https://ui-avatars.com/api/?name=Sneha&background=f4d125&color=2e3a1f'],
+                ['name' => 'Sagar',               'role' => 'Seller Dashboard',           'avatar' => 'https://ui-avatars.com/api/?name=Sagar&background=f4d125&color=2e3a1f'],
             ];
             foreach ($team as $member): ?>
                 <div style="background:var(--white);border-radius:var(--radius-2xl);padding:1.75rem;text-align:center;border:1px solid var(--border-light);box-shadow:var(--shadow-sm);">
