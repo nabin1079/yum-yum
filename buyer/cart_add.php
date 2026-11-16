@@ -20,7 +20,7 @@ if ($food_item_id === 0) {
 }
 
 //  Verify the food item exists and is available 
-$stmt = $pdo->prepare('SELECT id, name FROM food_items WHERE id = ? AND is_available = 1');
+$stmt = $pdo->prepare('SELECT id, name FROM food_items WHERE id = ? AND is_available = 1 AND deleted_at IS NULL');
 $stmt->execute([$food_item_id]);
 $item = $stmt->fetch();
 
@@ -37,7 +37,7 @@ if (!$item) {
 $stmt = $pdo->prepare('
     INSERT INTO cart (buyer_id, food_item_id, quantity)
     VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+    ON DUPLICATE KEY UPDATE quantity = LEAST(20, quantity + VALUES(quantity))   -- at most 20 of one meal
 ');
 $stmt->execute([$buyer_id, $food_item_id, $quantity]);
 

@@ -179,6 +179,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         <!-- Quantity update form -->
                                         <form method="POST" action="<?= BASE_PATH ?>buyer/cart_update.php"
                                               style="display:flex;align-items:center;gap:0.5rem;margin:0;">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="cart_id" value="<?= $ci['cart_id'] ?>" />
                                             <div style="display:flex;align-items:center;border:1.5px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;">
                                                 <button type="submit" name="action" value="decrease"
@@ -202,6 +203,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <!-- Remove form -->
                                     <form method="POST" action="<?= BASE_PATH ?>buyer/cart_remove.php"
                                           style="margin:0;">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="cart_id" value="<?= $ci['cart_id'] ?>" />
                                         <button type="submit"
                                                 style="display:inline-flex;align-items:center;gap:0.25rem;background:none;border:none;font-family:var(--font-body);font-size:0.8125rem;font-weight:700;color:#ef4444;cursor:pointer;padding:0.25rem 0;">
