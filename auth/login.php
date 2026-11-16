@@ -1,18 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/auth-guard.php';
 
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Redirect to their dashboard if already logged in
-if (!empty($_SESSION['user_id'])) {
-    $redirect = $_SESSION['role'] === 'seller'
-        ? BASE_PATH . 'seller/dashboard.php'
-        : BASE_PATH . 'buyer/menu.php';
-    header('Location: ' . $redirect);
+// Already logged in — go to their own area
+if (is_logged_in()) {
+    header('Location: ' . home_path_for($_SESSION['role']));
     exit;
 }
 
@@ -21,22 +14,27 @@ $email  = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // 1. Sanitise
-    $email    = trim($_POST['email']    ?? '');
-    $password = trim($_POST['password'] ?? '');
+    // 1. Read input (passwords are never trimmed)
+    $email    = strtolower(trim($_POST['email'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
 
     // 2. Validate inputs
-    if (empty($email)) {
+    if ($email === '') {
         $errors['email'] = 'Email address is required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors['email'] = 'Please enter a valid email address.';
     }
 
-    if (empty($password)) {
+    if ($password === '') {
         $errors['password'] = 'Password is required.';
     }
 
-    // 3. Look up user in DB (only if no input errors so far)
+    // 3. Block repeated guessing
+    if (empty($errors) && too_many_attempts($pdo, 'login', $email)) {
+        $errors['general'] = 'Too many failed attempts. Please wait 15 minutes or reset your password.';
+    }
+
+    // 4. Look up the user
     if (empty($errors)) {
         $stmt = $pdo->prepare('
             SELECT id, first_name, last_name, password_hash, role
@@ -48,24 +46,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
+            record_attempt($pdo, 'login', $email);
             $errors['general'] = 'Incorrect email or password. Please try again.';
         }
     }
 
-    // 4. Success — set session and redirect
+    // 5. Success — new session and redirect
     if (empty($errors)) {
-        session_regenerate_id(true); 
-
-        $_SESSION['user_id']    = $user['id'];
-        $_SESSION['first_name'] = $user['first_name'];
-        $_SESSION['last_name']  = $user['last_name'];
-        $_SESSION['role']       = $user['role'];
-
-        $redirect = $user['role'] === 'seller'
-            ? BASE_PATH . 'seller/dashboard.php'
-            : BASE_PATH . 'buyer/menu.php';
-
-        header('Location: ' . $redirect);
+        if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
+            $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+                ->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
+        }
+        clear_attempts($pdo, 'login', $email);
+        log_user_in($user);
+        header('Location: ' . home_path_for($user['role']));
         exit;
     }
 }
@@ -186,6 +180,7 @@ function field_class(string $field, array $errors): string {
 
             <!-- Login Form -->
             <form class="auth-form" method="POST" action="" novalidate>
+                <?= csrf_field() ?>
 
                 <!-- Email -->
                 <div class="auth-form__group">
@@ -283,9 +278,9 @@ function field_class(string $field, array $errors): string {
         </div><!-- /auth-form-inner -->
 
         <footer class="auth-footer">
-            <a href="#">Help Center</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+            <a href="<?= BASE_PATH ?>contact.php">Help Center</a>
+            <a href="<?= BASE_PATH ?>privacy.php">Privacy Policy</a>
+            <a href="<?= BASE_PATH ?>terms.php">Terms of Service</a>
         </footer>
 
     </main>

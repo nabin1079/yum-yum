@@ -1,22 +1,14 @@
 <?php
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/auth-guard.php';
 
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Redirect to their dashboard if already logged in
-if (!empty($_SESSION['user_id'])) {
-    $redirect = $_SESSION['role'] === 'seller'
-        ? BASE_PATH . 'seller/dashboard.php'
-        : BASE_PATH . 'buyer/menu.php';
-    header('Location: ' . $redirect);
+// Already logged in — go to their own area
+if (is_logged_in()) {
+    header('Location: ' . home_path_for($_SESSION['role']));
     exit;
 }
 
-//  Initialise error and field arrays 
 $errors = [];
 $fields = [
     'first_name' => '',
@@ -27,50 +19,48 @@ $fields = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // 1. Sanitise inputs
+    // 1. Read input
     $fields['first_name'] = trim($_POST['first_name'] ?? '');
     $fields['last_name']  = trim($_POST['last_name']  ?? '');
-    $fields['email']      = trim($_POST['email']      ?? '');
+    $fields['email']      = strtolower(trim($_POST['email'] ?? ''));
     $fields['role']       = trim($_POST['role']       ?? 'buyer');
-    $password             = $_POST['password']         ?? '';
-    $confirm              = $_POST['confirm_password'] ?? '';
+    $password             = (string)($_POST['password']         ?? '');
+    $confirm              = (string)($_POST['confirm_password'] ?? '');
 
     // 2. Validate
-    if (empty($fields['first_name'])) {
+    if ($fields['first_name'] === '') {
         $errors['first_name'] = 'First name is required.';
-    } elseif (strlen($fields['first_name']) > 100) {
+    } elseif (mb_strlen($fields['first_name']) > 100) {
         $errors['first_name'] = 'First name is too long.';
     }
 
-    if (empty($fields['last_name'])) {
+    if ($fields['last_name'] === '') {
         $errors['last_name'] = 'Last name is required.';
-    } elseif (strlen($fields['last_name']) > 100) {
+    } elseif (mb_strlen($fields['last_name']) > 100) {
         $errors['last_name'] = 'Last name is too long.';
     }
 
-    if (empty($fields['email'])) {
+    if ($fields['email'] === '') {
         $errors['email'] = 'Email address is required.';
-    } elseif (!filter_var($fields['email'], FILTER_VALIDATE_EMAIL)) {
+    } elseif (!filter_var($fields['email'], FILTER_VALIDATE_EMAIL) || strlen($fields['email']) > 255) {
         $errors['email'] = 'Please enter a valid email address.';
     }
 
-    if (empty($password)) {
-        $errors['password'] = 'Password is required.';
-    } elseif (strlen($password) < 8) {
-        $errors['password'] = 'Password must be at least 8 characters.';
+    if ($problem = password_problem($password)) {
+        $errors['password'] = $problem;
     }
 
-    if (empty($confirm)) {
+    if ($confirm === '') {
         $errors['confirm_password'] = 'Please confirm your password.';
     } elseif ($password !== $confirm) {
         $errors['confirm_password'] = 'Passwords do not match.';
     }
 
-    if (!in_array($fields['role'], ['buyer', 'seller'])) {
+    if (!in_array($fields['role'], ['buyer', 'seller'], true)) {
         $errors['role'] = 'Please select a valid role.';
     }
 
-    // 3. Check email is not already registered
+    // 3. Email must not be registered already
     if (empty($errors['email'])) {
         $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$fields['email']]);
@@ -79,36 +69,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 4. If no errors — insert user
+    // 4. Create the account
     if (empty($errors)) {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO users (first_name, last_name, email, password_hash, role)
+                VALUES (?, ?, ?, ?, ?)
+            ');
+            $stmt->execute([
+                $fields['first_name'],
+                $fields['last_name'],
+                $fields['email'],
+                password_hash($password, PASSWORD_DEFAULT),
+                $fields['role'],
+            ]);
+        } catch (PDOException $e) {
+            // Two sign-ups with the same email at the same moment
+            if ($e->getCode() === '23000') {
+                $errors['email'] = 'This email is already registered. Please log in.';
+            } else {
+                throw $e;
+            }
+        }
+    }
 
-        $stmt = $pdo->prepare('
-            INSERT INTO users (first_name, last_name, email, password_hash, role)
-            VALUES (?, ?, ?, ?, ?)
-        ');
-        $stmt->execute([
-            $fields['first_name'],
-            $fields['last_name'],
-            $fields['email'],
-            $hash,
-            $fields['role'],
+    // 5. Log in and go to their area
+    if (empty($errors)) {
+        log_user_in([
+            'id'         => $pdo->lastInsertId(),
+            'first_name' => $fields['first_name'],
+            'last_name'  => $fields['last_name'],
+            'role'       => $fields['role'],
         ]);
-
-        $new_id = $pdo->lastInsertId();
-
-        // 5. Log them in immediately after registration
-        $_SESSION['user_id']    = $new_id;
-        $_SESSION['first_name'] = $fields['first_name'];
-        $_SESSION['last_name']  = $fields['last_name'];
-        $_SESSION['role']       = $fields['role'];
-
-        // 6. Redirect to their dashboard
-        $redirect = $fields['role'] === 'seller'
-            ? BASE_PATH . 'seller/dashboard.php'
-            : BASE_PATH . 'buyer/menu.php';
-
-        header('Location: ' . $redirect);
+        if ($fields['role'] === 'seller') {
+            flash('success', 'Welcome to Yum-Yum! Add your kitchen name and a short bio in your profile so buyers get to know you.');
+        }
+        header('Location: ' . home_path_for($fields['role']));
         exit;
     }
 }
@@ -276,6 +272,7 @@ function field_class(string $field, array $errors): string {
 
             <!-- Registration Form -->
             <form class="auth-form" method="POST" action="" novalidate>
+                <?= csrf_field() ?>
 
                 <!-- First + Last Name -->
                 <div class="auth-form__row">
@@ -348,7 +345,7 @@ function field_class(string $field, array $errors): string {
                             type="password"
                             id="password"
                             name="password"
-                            placeholder="At least 8 characters"
+                            placeholder="8+ characters, letters and a number"
                             autocomplete="new-password"
                         />
                         <button type="button" class="auth-pw-toggle" data-target="password" aria-label="Toggle password">
@@ -442,9 +439,9 @@ function field_class(string $field, array $errors): string {
         </div><!-- /auth-form-inner -->
 
         <footer class="auth-footer">
-            <a href="#">Help Center</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+            <a href="<?= BASE_PATH ?>contact.php">Help Center</a>
+            <a href="<?= BASE_PATH ?>privacy.php">Privacy Policy</a>
+            <a href="<?= BASE_PATH ?>terms.php">Terms of Service</a>
         </footer>
 
     </main>

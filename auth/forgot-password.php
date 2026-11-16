@@ -1,39 +1,54 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/mailer.php';
 
 $message = '';
-$error = '';
+$error   = '';
+
+// The same message is shown whether or not the email is registered,
+// so this page cannot be used to find out who has an account.
+const RESET_SENT_MESSAGE = 'If an account exists for that email, we have sent a link to reset your password. The link works once and expires in 1 hour. Please check your inbox and spam folder.';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
+    $email = strtolower(trim($_POST['email'] ?? ''));
 
-    if ($email === '') {
-        $error = 'Please enter your email address.';
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Please enter a valid email address.';
+    } elseif (too_many_attempts($pdo, 'reset', $email)) {
+        // Still show the normal message; just do not send more emails.
+        $message = RESET_SENT_MESSAGE;
     } else {
-        $stmt = $pdo->prepare("SELECT id, first_name, email FROM users WHERE email = ?");
+        record_attempt($pdo, 'reset', $email);
+
+        $stmt = $pdo->prepare('SELECT id, first_name, email FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
         if ($user) {
-            $rawToken = bin2hex(random_bytes(32));
-            $tokenHash = password_hash($rawToken, PASSWORD_DEFAULT);
-            $expiresAt = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            // Selector finds the row; the token is secret and stored only as a hash.
+            $selector = bin2hex(random_bytes(8));
+            $token    = bin2hex(random_bytes(32));
 
-            $del = $pdo->prepare("DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL");
-            $del->execute([$user['id']]);
+            $pdo->prepare('DELETE FROM password_resets WHERE user_id = ?')->execute([$user['id']]);
+            $pdo->prepare('
+                INSERT INTO password_resets (user_id, selector, token_hash, expires_at)
+                VALUES (?, ?, ?, NOW() + INTERVAL 1 HOUR)
+            ')->execute([$user['id'], $selector, hash('sha256', $token)]);
 
-            $ins = $pdo->prepare("
-                INSERT INTO password_resets (user_id, token_hash, expires_at)
-                VALUES (?, ?, ?)
-            ");
-            $ins->execute([$user['id'], $tokenHash, $expiresAt]);
-
-            $resetLink = BASE_PATH . "auth/reset-password.php?token=" . urlencode($rawToken) . "&uid=" . $user['id'];
-
-            $message = "reset_link:" . $resetLink;
-        } else {
-            $message = 'If the email exists in our system, a password reset link has been generated.';
+            $link = APP_URL . '/auth/reset-password.php?selector=' . $selector . '&token=' . $token;
+            send_mail(
+                $user['email'],
+                'Reset your Yum-Yum password',
+                "Hi {$user['first_name']},\n\n"
+                . "We received a request to reset the password for your Yum-Yum account.\n\n"
+                . "Open this link to choose a new password:\n$link\n\n"
+                . "The link works once and expires in 1 hour.\n"
+                . "If you did not ask for this, you can ignore this email; your password will not change.\n\n"
+                . "Yum-Yum"
+            );
         }
+        $message = RESET_SENT_MESSAGE;
     }
 }
 ?>
@@ -86,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="auth-form-inner">
 
             <h2 class="auth-heading">Forgot Password</h2>
-            <p class="auth-subheading">Enter your registered email and we'll generate a reset link.</p>
+            <p class="auth-subheading">Enter your registered email and we'll email you a reset link.</p>
 
             <?php if ($error): ?>
                 <div style="display:flex;align-items:center;gap:0.5rem;padding:0.875rem 1rem;border-radius:var(--radius-lg);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#dc2626;font-size:0.875rem;font-weight:600;margin-bottom:1.25rem;">
@@ -96,28 +111,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php if ($message): ?>
-                <?php if (str_starts_with($message, 'reset_link:')): ?>
-                    <?php $link = substr($message, strlen('reset_link:')); ?>
-                    <!-- Reset link generated -->
-                    <div style="background:rgba(244,209,37,0.1);border:1.5px dashed var(--primary);border-radius:var(--radius-xl);padding:1.25rem;margin-bottom:1.5rem;">
-                        <p style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--earth);margin-bottom:0.5rem;">
-                            ⚠ Dev Mode — Click the link below to reset your password
-                        </p>
-                        <a href="<?= htmlspecialchars($link) ?>"
-                           style="font-size:0.875rem;font-weight:700;color:var(--earth);word-break:break-all;text-decoration:underline;">
-                            <?= htmlspecialchars($link) ?>
-                        </a>
-                    </div>
-                <?php else: ?>
-                    <!-- Safe fallback message (email not found) -->
-                    <div style="display:flex;align-items:center;gap:0.5rem;padding:0.875rem 1rem;border-radius:var(--radius-lg);background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);color:#15803d;font-size:0.875rem;font-weight:600;margin-bottom:1.25rem;">
-                        <span class="material-symbols-outlined" style="font-size:1.1rem;font-variation-settings:'FILL' 1;">check_circle</span>
-                        <?= htmlspecialchars($message) ?>
-                    </div>
+                <div style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.875rem 1rem;border-radius:var(--radius-lg);background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);color:#15803d;font-size:0.875rem;font-weight:600;margin-bottom:1.25rem;line-height:1.6;">
+                    <span class="material-symbols-outlined" style="font-size:1.1rem;font-variation-settings:'FILL' 1;">mark_email_read</span>
+                    <span><?= e($message) ?></span>
+                </div>
+                <?php if (APP_ENV !== 'production' && MAIL_DRIVER !== 'smtp'): ?>
+                    <p style="font-size:0.75rem;color:var(--sage);margin:-0.5rem 0 1.25rem;">
+                        Development mode: emails are written to storage/logs/mail.log instead of being sent.
+                    </p>
                 <?php endif; ?>
             <?php endif; ?>
 
             <form class="auth-form" method="POST" action="">
+                <?= csrf_field() ?>
 
                 <div class="auth-form__group">
                     <label class="auth-label" for="email">Email Address</label>
@@ -150,9 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <footer class="auth-footer">
-            <a href="#">Help Center</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+            <a href="<?= BASE_PATH ?>contact.php">Help Center</a>
+            <a href="<?= BASE_PATH ?>privacy.php">Privacy Policy</a>
+            <a href="<?= BASE_PATH ?>terms.php">Terms of Service</a>
         </footer>
 
     </main>
