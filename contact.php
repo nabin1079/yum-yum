@@ -2,18 +2,32 @@
 
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth-guard.php';
+require_once __DIR__ . '/includes/mailer.php';
 
 $page_title = 'Contact Us';
 $active_nav = 'contact';
 
+const CONTACT_SUBJECTS = [
+    'general'   => 'General Enquiry',
+    'order'     => 'Order Issue',
+    'seller'    => 'Becoming a Seller',
+    'feedback'  => 'Feedback',
+    'technical' => 'Technical Problem',
+    'other'     => 'Other',
+];
+
+// Prefill name and email for logged-in users
 $prefill_name  = '';
 $prefill_email = '';
 if (is_logged_in()) {
-    $prefill_name  = $_SESSION['first_name'] . ' ' . $_SESSION['last_name'];
+    $prefill_name = $_SESSION['first_name'] . ' ' . $_SESSION['last_name'];
+    $stmt = $pdo->prepare('SELECT email FROM users WHERE id = ?');
+    $stmt->execute([$_SESSION['user_id']]);
+    $prefill_email = (string)$stmt->fetchColumn();
 }
 
 $errors  = [];
-$success = false;
+$success = isset($_GET['sent']);
 $fields  = [
     'name'    => $prefill_name,
     'email'   => $prefill_email,
@@ -24,22 +38,64 @@ $fields  = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $fields['name']    = trim($_POST['name']    ?? '');
-    $fields['email']   = trim($_POST['email']   ?? '');
+    $fields['email']   = strtolower(trim($_POST['email'] ?? ''));
     $fields['subject'] = trim($_POST['subject'] ?? '');
     $fields['message'] = trim($_POST['message'] ?? '');
 
-    if (empty($fields['name']))    $errors['name']    = 'Your name is required.';
-    if (empty($fields['email']))   $errors['email']   = 'Email address is required.';
+    if ($fields['name'] === '')         $errors['name'] = 'Your name is required.';
+    elseif (mb_strlen($fields['name']) > 200)
+                                        $errors['name'] = 'Name is too long.';
+    if ($fields['email'] === '')        $errors['email'] = 'Email address is required.';
     elseif (!filter_var($fields['email'], FILTER_VALIDATE_EMAIL))
-                                   $errors['email']   = 'Please enter a valid email address.';
-    if (empty($fields['subject'])) $errors['subject'] = 'Please select a subject.';
-    if (empty($fields['message'])) $errors['message'] = 'Message cannot be empty.';
-    elseif (strlen($fields['message']) < 10)
-                                   $errors['message'] = 'Message is too short — please provide more detail.';
+                                        $errors['email'] = 'Please enter a valid email address.';
+    if (!isset(CONTACT_SUBJECTS[$fields['subject']]))
+                                        $errors['subject'] = 'Please select a subject.';
+    if ($fields['message'] === '')      $errors['message'] = 'Message cannot be empty.';
+    elseif (mb_strlen($fields['message']) < 10)
+                                        $errors['message'] = 'Message is too short — please provide more detail.';
+    elseif (mb_strlen($fields['message']) > 1000)
+                                        $errors['message'] = 'Message must be 1000 characters or fewer.';
 
-    if (empty($errors)) {
-        $success = true;
-        $fields  = ['name' => $prefill_name, 'email' => $prefill_email, 'subject' => '', 'message' => ''];
+    // Hidden field that people never fill in; simple bots do.
+    $is_bot = trim($_POST['website'] ?? '') !== '';
+
+    if (!$errors && !$is_bot && too_many_attempts($pdo, 'contact', $fields['email'])) {
+        $errors['general'] = 'You have sent several messages recently. Please wait a while before sending another.';
+    }
+
+    if (!$errors) {
+        if (!$is_bot) {
+            record_attempt($pdo, 'contact', $fields['email']);
+
+            // 1. Save the message, so nothing is lost even if email fails
+            $pdo->prepare('
+                INSERT INTO contact_messages (user_id, name, email, subject, message, ip)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ')->execute([
+                is_logged_in() ? $_SESSION['user_id'] : null,
+                $fields['name'], $fields['email'], $fields['subject'], $fields['message'], client_ip(),
+            ]);
+            $message_id = (int)$pdo->lastInsertId();
+
+            // 2. Email it to the team; replying goes straight to the sender
+            $sent = send_mail(
+                CONTACT_TO,
+                '[Yum-Yum contact #' . $message_id . '] ' . CONTACT_SUBJECTS[$fields['subject']] . ' from ' . $fields['name'],
+                "New message from the Yum-Yum contact form\n\n"
+                . "Name:    {$fields['name']}\n"
+                . "Email:   {$fields['email']}\n"
+                . 'Subject: ' . CONTACT_SUBJECTS[$fields['subject']] . "\n"
+                . 'Account: ' . (is_logged_in() ? $_SESSION['role'] . ' #' . $_SESSION['user_id'] : 'not logged in') . "\n\n"
+                . $fields['message'] . "\n",
+                $fields['email']
+            );
+            if ($sent) {
+                $pdo->prepare('UPDATE contact_messages SET emailed = 1 WHERE id = ?')->execute([$message_id]);
+            }
+        }
+        // Post/Redirect/Get: refreshing the page will not send it twice
+        header('Location: ' . BASE_PATH . 'contact.php?sent=1');
+        exit;
     }
 }
 
@@ -94,10 +150,10 @@ require_once __DIR__ . '/includes/header.php';
                     <p style="color:var(--sage);font-size:0.9375rem;line-height:1.7;margin-bottom:1.5rem;">
                         Thanks for reaching out. We'll get back to you within 24 hours.
                     </p>
-                    <button onclick="window.location.reload()"
+                    <a href="<?= BASE_PATH ?>contact.php"
                             style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--primary);color:var(--earth);padding:0.75rem 1.5rem;border-radius:var(--radius-xl);border:none;font-family:var(--font-body);font-weight:800;font-size:0.875rem;cursor:pointer;">
                         Send Another Message
-                    </button>
+                    </a>
                 </div>
 
             <?php else: ?>
@@ -106,15 +162,21 @@ require_once __DIR__ . '/includes/header.php';
                 <?php if (!empty($errors)): ?>
                     <div style="padding:0.875rem 1.25rem;border-radius:var(--radius-lg);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#dc2626;font-size:0.9375rem;font-weight:600;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.625rem;">
                         <span class="material-symbols-outlined" style="font-size:1.1rem;font-variation-settings:'FILL' 1;">error</span>
-                        Please fix the errors below.
+                        <?= e($errors['general'] ?? 'Please fix the errors below.') ?>
                     </div>
                 <?php endif; ?>
 
                 <form method="POST" action="" novalidate
                       style="display:flex;flex-direction:column;gap:1.25rem;background:var(--white);border:1px solid var(--border-light);border-radius:var(--radius-2xl);padding:2rem;box-shadow:var(--shadow-sm);">
+                    <?= csrf_field() ?>
+
+                    <!-- Left empty on purpose: a trap for spam bots -->
+                    <div style="position:absolute;left:-9999px;" aria-hidden="true">
+                        <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+                    </div>
 
                     <!-- Name + Email row -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div class="contact-two-col">
 
                         <div style="display:flex;flex-direction:column;gap:0.4rem;">
                             <label style="font-size:0.875rem;font-weight:700;color:var(--earth);">
@@ -162,16 +224,7 @@ require_once __DIR__ . '/includes/header.php';
                             onblur="this.style.borderColor='var(--border-light)';this.style.boxShadow='none'"
                         >
                             <option value="">— Select a subject —</option>
-                            <?php
-                            $subjects = [
-                                'general'   => 'General Enquiry',
-                                'order'     => 'Order Issue',
-                                'seller'    => 'Becoming a Seller',
-                                'feedback'  => 'Feedback',
-                                'technical' => 'Technical Problem',
-                                'other'     => 'Other',
-                            ];
-                            foreach ($subjects as $val => $label): ?>
+                            <?php foreach (CONTACT_SUBJECTS as $val => $label): ?>
                                 <option value="<?= $val ?>" <?= $fields['subject'] === $val ? 'selected' : '' ?>>
                                     <?= $label ?>
                                 </option>
@@ -235,27 +288,6 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             <?php endforeach; ?>
 
-            <!-- Social links -->
-            <div style="background:var(--bg-dark);border-radius:var(--radius-2xl);padding:1.5rem;">
-                <p style="font-size:0.875rem;font-weight:800;color:var(--white);margin-bottom:1rem;">Follow us</p>
-                <div style="display:flex;gap:0.75rem;">
-                    <?php
-                    $socials = [
-                        ['label' => 'Instagram', 'icon' => 'photo_camera'],
-                        ['label' => 'Twitter',   'icon' => 'tag'],
-                        ['label' => 'Facebook',  'icon' => 'thumb_up'],
-                    ];
-                    foreach ($socials as $s): ?>
-                        <a href="#"
-                           style="display:flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:var(--radius-lg);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);transition:background 0.15s ease,color 0.15s ease;text-decoration:none;"
-                           title="<?= $s['label'] ?>"
-                           onmouseover="this.style.background='var(--primary)';this.style.color='var(--earth)'"
-                           onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">
-                            <span class="material-symbols-outlined" style="font-size:1.1rem;"><?= $s['icon'] ?></span>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
 
         </div>
 
