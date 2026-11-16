@@ -1,0 +1,15 @@
+# Local settings with passwords (copy config/config.local.sample.php)
+config/config.local.php
+
+# Logs and runtime files
+storage/logs/
+
+# Images uploaded by sellers
+uploads/food/*
+!uploads/food/.gitkeep
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

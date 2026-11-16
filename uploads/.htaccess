@@ -1,0 +1,13 @@
+# Uploaded files are only ever images. Never run code from this folder.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(?i:php\d?|phtml|phar|phps|pht|cgi|pl|py|sh|htaccess)$">
+    Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

@@ -84,7 +84,13 @@ function nav_class(string $link, string $active): string {
                        class="<?= nav_class('orders', $active_nav) ?>">
                         Orders
                     </a>
-                </li> 
+                </li>
+                <li>
+                    <a href="<?= BASE_PATH ?>seller/profile.php"
+                       class="<?= nav_class('profile', $active_nav) ?>">
+                        Profile
+                    </a>
+                </li>
                 <li>
                     <a href="<?= BASE_PATH ?>about.php"
                        class="<?= nav_class('about', $active_nav) ?>">
@@ -178,6 +184,7 @@ function nav_class(string $link, string $active): string {
                         <?= htmlspecialchars($user['first_name']) ?>
                     </span>
                     <form method="POST" action="<?= BASE_PATH ?>auth/logout.php" style="margin:0;">
+                        <?= csrf_field() ?>
                         <button type="submit" class="navbar__btn-logout">
                             <span class="material-symbols-outlined">logout</span>
                             Logout
@@ -207,6 +214,7 @@ function nav_class(string $link, string $active): string {
                 <li><a href="<?= BASE_PATH ?>seller/dashboard.php">Dashboard</a></li>
                 <li><a href="<?= BASE_PATH ?>seller/food_add.php">Add Food</a></li>
                 <li><a href="<?= BASE_PATH ?>seller/orders.php">Orders</a></li>
+                <li><a href="<?= BASE_PATH ?>seller/profile.php">Profile</a></li>
 
             <?php elseif ($role === 'buyer'): ?>
                 <li><a href="<?= BASE_PATH ?>index.php">Home</a></li>
@@ -226,6 +234,7 @@ function nav_class(string $link, string $active): string {
             <?php if ($user): ?>
                 <li>
                     <form method="POST" action="<?= BASE_PATH ?>auth/logout.php" style="margin:0;">
+                        <?= csrf_field() ?>
                         <button type="submit" class="navbar__mobile-logout">Logout</button>
                     </form>
                 </li>
