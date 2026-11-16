@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth-guard.php';
+require_once __DIR__ . '/includes/orders.php';
 
 $page_title = 'Fresh Home-Style Tiffins';
 $active_nav = 'home';
@@ -18,11 +19,12 @@ $stmt = $pdo->prepare('
         fi.image_path,
         c.name  AS category,
         u.first_name AS seller_first,
-        u.last_name  AS seller_last
+        u.last_name  AS seller_last,
+        u.kitchen_name AS seller_kitchen
     FROM food_items fi
     JOIN categories c ON fi.category_id = c.id
     JOIN users      u ON fi.seller_id   = u.id
-    WHERE fi.is_available = 1
+    WHERE fi.is_available = 1 AND fi.deleted_at IS NULL
     ORDER BY fi.created_at DESC
     LIMIT 6
 ');
@@ -206,7 +208,7 @@ $menu_items = $stmt->fetchAll();
                                       style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
                                     storefront
                                 </span>
-                                <?= htmlspecialchars($item['seller_first'] . ' ' . $item['seller_last']) ?>
+                                <?= e(seller_display_name($item)) ?>
                             </span>
                             <span class="menu-card__btn">View →</span>
                         </div>

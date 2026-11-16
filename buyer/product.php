@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/orders.php';
 
 $page_title = 'Product';
 $active_nav = 'menu';
@@ -26,11 +27,14 @@ $stmt = $pdo->prepare('
         c.name       AS category,
         u.id         AS seller_id,
         u.first_name AS seller_first,
-        u.last_name  AS seller_last
+        u.last_name  AS seller_last,
+        u.kitchen_name AS seller_kitchen,
+        u.area       AS seller_area,
+        u.bio        AS seller_bio
     FROM food_items fi
     JOIN categories c ON fi.category_id = c.id
     JOIN users      u ON fi.seller_id   = u.id
-    WHERE fi.id = ? AND fi.is_available = 1
+    WHERE fi.id = ? AND fi.is_available = 1 AND fi.deleted_at IS NULL
 ');
 $stmt->execute([$item_id]);
 $item = $stmt->fetch();
@@ -66,6 +70,23 @@ $stmt = $pdo->prepare('
 ');
 $stmt->execute([$item_id, $item_id]);
 $related_items = $stmt->fetchAll();
+
+//  More from the same seller
+$stmt = $pdo->prepare('
+    SELECT fi.id, fi.name, fi.price, fi.image_path, c.name AS category
+    FROM food_items fi
+    JOIN categories c ON fi.category_id = c.id
+    WHERE fi.seller_id = ? AND fi.id <> ? AND fi.is_available = 1 AND fi.deleted_at IS NULL
+    ORDER BY fi.created_at DESC
+    LIMIT 4
+');
+$stmt->execute([$item['seller_id'], $item_id]);
+$seller_items = $stmt->fetchAll();
+$seller_name  = seller_display_name($item);
+
+// Related items should not repeat the seller's own meals
+$seller_ids    = array_column($seller_items, 'id');
+$related_items = array_values(array_filter($related_items, fn($r) => !in_array($r['id'], $seller_ids)));
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -130,10 +151,10 @@ require_once __DIR__ . '/../includes/header.php';
                     <span class="material-symbols-outlined" style="font-size:0.9rem;font-variation-settings:'FILL' 1;">category</span>
                     <?= htmlspecialchars($item['category']) ?>
                 </span>
-                <span class="detail-tag-pill">
+                <a class="detail-tag-pill" href="<?= BASE_PATH ?>seller.php?id=<?= (int)$item['seller_id'] ?>" style="text-decoration:none;">
                     <span class="material-symbols-outlined" style="font-size:0.9rem;font-variation-settings:'FILL' 1;">storefront</span>
-                    <?= htmlspecialchars($item['seller_first'] . ' ' . $item['seller_last']) ?>
-                </span>
+                    <?= e($seller_name) ?>
+                </a>
             </div>
         </div>
 
@@ -186,6 +207,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 View Cart
                             </a>
                             <form method="POST" action="<?= BASE_PATH ?>buyer/cart_add.php" style="flex:1;margin:0;">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="food_item_id" value="<?= $item_id ?>" />
                                 <input type="hidden" name="redirect" value="product" />
                                 <button type="submit"
@@ -199,6 +221,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php else: ?>
                         <!-- Add to cart form -->
                         <form method="POST" action="<?= BASE_PATH ?>buyer/cart_add.php" style="margin:0;">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="food_item_id" value="<?= $item_id ?>" />
                             <input type="hidden" name="redirect" value="product" />
 
@@ -258,6 +281,54 @@ require_once __DIR__ . '/../includes/header.php';
 
         </div>
     </div><!-- /detail-grid -->
+
+    <!-- About the seller + more from them -->
+    <section class="seller-strip">
+        <a class="seller-strip__card" href="<?= BASE_PATH ?>seller.php?id=<?= (int)$item['seller_id'] ?>">
+            <span class="seller-strip__avatar"><?= e(mb_strtoupper(mb_substr($item['seller_first'], 0, 1) . mb_substr($item['seller_last'], 0, 1))) ?></span>
+            <span class="seller-strip__text">
+                <span class="seller-strip__label">Sold by</span>
+                <strong><?= e($seller_name) ?></strong>
+                <?php if ($item['seller_area']): ?><span class="seller-strip__muted"><?= e($item['seller_area']) ?></span><?php endif; ?>
+                <?php if ($item['seller_bio']): ?><span class="seller-strip__bio"><?= e(mb_strimwidth($item['seller_bio'], 0, 140, '…')) ?></span><?php endif; ?>
+            </span>
+            <span class="seller-strip__link">View seller page →</span>
+        </a>
+    </section>
+
+    <?php if (!empty($seller_items)): ?>
+        <div style="margin-top:3rem;">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+                <h2 style="font-size:1.375rem;font-weight:800;color:var(--earth);letter-spacing:-0.02em;">
+                    More from <?= e($seller_name) ?>
+                </h2>
+                <a href="<?= BASE_PATH ?>seller.php?id=<?= (int)$item['seller_id'] ?>" style="font-weight:700;color:var(--earth);">See all →</a>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem;">
+                <?php foreach ($seller_items as $rel): ?>
+                    <a href="<?= BASE_PATH ?>buyer/product.php?id=<?= (int)$rel['id'] ?>" class="menu-card menu-card--link" style="text-decoration:none;">
+                        <div class="menu-card__image-wrapper">
+                            <?php if ($rel['image_path']): ?>
+                                <img class="menu-card__image" src="<?= BASE_PATH ?>uploads/food/<?= e($rel['image_path']) ?>" alt="<?= e($rel['name']) ?>" loading="lazy" />
+                            <?php else: ?>
+                                <div class="menu-card__image" style="background:var(--primary-dim);display:flex;align-items:center;justify-content:center;">
+                                    <span class="material-symbols-outlined" style="font-size:2.5rem;color:var(--sage);opacity:0.4;">restaurant</span>
+                                </div>
+                            <?php endif; ?>
+                            <span class="dish-card__badge"><?= e($rel['category']) ?></span>
+                        </div>
+                        <div class="menu-card__body">
+                            <div class="menu-card__top">
+                                <h3 class="menu-card__name"><?= e($rel['name']) ?></h3>
+                                <span class="menu-card__price">$<?= number_format((float)$rel['price'], 2) ?></span>
+                            </div>
+                            <span class="menu-card__btn" style="margin-top:0.5rem;display:inline-block;">View →</span>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Related items -->
     <?php if (!empty($related_items)): ?>
