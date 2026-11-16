@@ -8,45 +8,44 @@ $page_title = 'Seller Dashboard';
 $active_nav = 'dashboard';
 $extra_css  = ['seller.css'];
 
-//  Flash message from redirects 
-$flash = $_SESSION['flash'] ?? null;
-unset($_SESSION['flash']);
+$flash     = take_flash();
+$seller_id = (int)$_SESSION['user_id'];
 
-//  Stats 
-$seller_id = $_SESSION['user_id'];
-
-// Total food items
-$stmt = $pdo->prepare('SELECT COUNT(*) FROM food_items WHERE seller_id = ?');
-$stmt->execute([$seller_id]);
-$total_items = (int)$stmt->fetchColumn();
-
-// Available items
-$stmt = $pdo->prepare('SELECT COUNT(*) FROM food_items WHERE seller_id = ? AND is_available = 1');
-$stmt->execute([$seller_id]);
-$available_items = (int)$stmt->fetchColumn();
-
-// Total orders containing seller's items
+//  Stats (archived meals are not counted)
 $stmt = $pdo->prepare('
-    SELECT COUNT(DISTINCT o.id)
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.id
-    JOIN food_items  fi ON fi.id = oi.food_item_id
-    WHERE fi.seller_id = ?
+    SELECT COUNT(*) AS total, COALESCE(SUM(is_available), 0) AS available
+    FROM food_items
+    WHERE seller_id = ? AND deleted_at IS NULL
 ');
 $stmt->execute([$seller_id]);
-$total_orders = (int)$stmt->fetchColumn();
+$counts          = $stmt->fetch();
+$total_items     = (int)$counts['total'];
+$available_items = (int)$counts['available'];
 
-// Total revenue
-$stmt = $pdo->prepare('
-    SELECT COALESCE(SUM(oi.quantity * oi.price_at_purchase), 0)
-    FROM order_items oi
-    JOIN food_items  fi ON fi.id = oi.food_item_id
-    WHERE fi.seller_id = ?
-');
+// Orders and cash on delivery: collected = paid, to collect = active and unpaid
+$stmt = $pdo->prepare("
+    SELECT
+        COUNT(*) AS total_orders,
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total_amount END), 0) AS collected,
+        COALESCE(SUM(CASE WHEN payment_status = 'unpaid' AND status <> 'cancelled' THEN total_amount END), 0) AS to_collect,
+        SUM(status = 'pending') AS pending
+    FROM orders
+    WHERE seller_id = ?
+");
 $stmt->execute([$seller_id]);
-$total_revenue = (float)$stmt->fetchColumn();
+$order_stats   = $stmt->fetch();
+$total_orders  = (int)$order_stats['total_orders'];
+$total_revenue = (float)$order_stats['collected'];
+$to_collect    = (float)$order_stats['to_collect'];
+$pending       = (int)$order_stats['pending'];
 
-//  Fetch seller's food items 
+// Profile completeness reminder
+$stmt = $pdo->prepare('SELECT kitchen_name, bio FROM users WHERE id = ?');
+$stmt->execute([$seller_id]);
+$profile = $stmt->fetch();
+$profile_incomplete = trim((string)$profile['kitchen_name']) === '' || trim((string)$profile['bio']) === '';
+
+//  Seller's food items
 $stmt = $pdo->prepare('
     SELECT
         fi.id,
@@ -59,7 +58,7 @@ $stmt = $pdo->prepare('
         c.name AS category
     FROM food_items fi
     JOIN categories c ON fi.category_id = c.id
-    WHERE fi.seller_id = ?
+    WHERE fi.seller_id = ? AND fi.deleted_at IS NULL
     ORDER BY fi.created_at DESC
 ');
 $stmt->execute([$seller_id]);
@@ -75,15 +74,35 @@ require_once __DIR__ . '/../includes/header.php';
         <div>
             <h1 class="seller-page__title">
                 Good <?= date('H') < 12 ? 'morning' : (date('H') < 17 ? 'afternoon' : 'evening') ?>,
-                <?= htmlspecialchars($_SESSION['first_name']) ?> 👋
+                <?= e($_SESSION['first_name']) ?>
             </h1>
             <p class="seller-page__subtitle">Here's what's happening with your tiffin shop today.</p>
         </div>
-        <a href="<?= BASE_PATH ?>seller/food_add.php" class="seller-btn-primary">
-            <span class="material-symbols-outlined">add</span>
-            Add New Food
-        </a>
+        <div style="display:flex;gap:0.625rem;flex-wrap:wrap;">
+            <a href="<?= BASE_PATH ?>seller.php?id=<?= $seller_id ?>" class="seller-btn-secondary">
+                <span class="material-symbols-outlined">storefront</span>
+                My Public Page
+            </a>
+            <a href="<?= BASE_PATH ?>seller/food_add.php" class="seller-btn-primary">
+                <span class="material-symbols-outlined">add</span>
+                Add New Food
+            </a>
+        </div>
     </div>
+
+    <?php if ($profile_incomplete): ?>
+        <div class="seller-alert seller-alert--info">
+            <span class="material-symbols-outlined">badge</span>
+            <span>Buyers can visit your seller page. <a href="<?= BASE_PATH ?>seller/profile.php" style="font-weight:800;color:inherit;">Add your kitchen name and a short bio</a> so they know who is cooking.</span>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($pending > 0): ?>
+        <div class="seller-alert seller-alert--info">
+            <span class="material-symbols-outlined">notifications_active</span>
+            <span>You have <?= $pending ?> new order<?= $pending !== 1 ? 's' : '' ?> waiting. <a href="<?= BASE_PATH ?>seller/orders.php?status=pending" style="font-weight:800;color:inherit;">Review now</a></span>
+        </div>
+    <?php endif; ?>
 
     <!-- Flash message -->
     <?php if ($flash): ?>
@@ -127,7 +146,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <span class="material-symbols-outlined">payments</span>
             </div>
             <div class="seller-stat-card__value">$<?= number_format($total_revenue, 2) ?></div>
-            <div class="seller-stat-card__label">Total Revenue</div>
+            <div class="seller-stat-card__label">Cash Collected</div>
+            <?php if ($to_collect > 0): ?>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--sage);margin-top:0.25rem;">$<?= number_format($to_collect, 2) ?> still to collect</div>
+            <?php endif; ?>
         </div>
 
     </div>
@@ -237,8 +259,8 @@ require_once __DIR__ . '/../includes/header.php';
 
                                     <!-- Toggle availability -->
                                     <form method="POST" action="<?= BASE_PATH ?>seller/food_toggle.php" style="margin:0;">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="id" value="<?= $item['id'] ?>" />
-                                        <input type="hidden" name="current" value="<?= $item['is_available'] ?>" />
                                         <button type="submit" class="seller-btn-secondary" title="<?= $item['is_available'] ? 'Hide from menu' : 'Make available' ?>">
                                             <span class="material-symbols-outlined">
                                                 <?= $item['is_available'] ? 'visibility_off' : 'visibility' ?>
@@ -249,7 +271,8 @@ require_once __DIR__ . '/../includes/header.php';
                                     <!-- Delete -->
                                     <form method="POST" action="<?= BASE_PATH ?>seller/food_delete.php"
                                           style="margin:0;"
-                                          onsubmit="return confirm('Delete \'<?= htmlspecialchars(addslashes($item['name'])) ?>\'? This cannot be undone.');">
+                                          data-confirm="Remove &quot;<?= e($item['name']) ?>&quot; from your menu?" onsubmit="return confirm(this.dataset.confirm);">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="id" value="<?= $item['id'] ?>" />
                                         <button type="submit" class="seller-btn-danger">
                                             <span class="material-symbols-outlined">delete</span>

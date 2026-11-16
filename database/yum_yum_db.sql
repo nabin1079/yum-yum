@@ -1,3 +1,13 @@
+-- ============================================================
+-- Yum-Yum database: full schema for a NEW installation.
+-- Running this file DROPS and recreates every table.
+-- To upgrade an existing database without losing data, run
+-- database/migrations/2026-11-15_cod_profiles_security.sql instead.
+--
+-- On shared hosting the database is usually created in the control
+-- panel; in that case remove the CREATE DATABASE and USE lines and
+-- import the rest into the database you created.
+-- ============================================================
 
 CREATE DATABASE IF NOT EXISTS yum_yum_db
     CHARACTER SET utf8mb4
@@ -6,6 +16,8 @@ CREATE DATABASE IF NOT EXISTS yum_yum_db
 USE yum_yum_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS contact_messages;
+DROP TABLE IF EXISTS auth_attempts;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS cart;
@@ -16,7 +28,8 @@ DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ------------------------------------------------------------
--- users — auth/register.php, auth/login.php
+-- users — auth/register.php, auth/login.php, seller/profile.php
+-- kitchen_name, area and bio are shown on the public seller page.
 -- ------------------------------------------------------------
 CREATE TABLE users (
     id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -25,6 +38,10 @@ CREATE TABLE users (
     email         VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,             -- password_hash() output
     role          ENUM('buyer', 'seller') NOT NULL DEFAULT 'buyer',
+    phone         VARCHAR(30)  NULL DEFAULT NULL,
+    kitchen_name  VARCHAR(120) NULL DEFAULT NULL,
+    area          VARCHAR(120) NULL DEFAULT NULL,
+    bio           TEXT         NULL,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -33,16 +50,19 @@ CREATE TABLE users (
 
 -- ------------------------------------------------------------
 -- password_resets — auth/forgot-password.php, auth/reset-password.php
--- Token is stored hashed; used_at marks it consumed.
+-- The emailed link carries a public selector (to find the row) and a
+-- secret token; only the SHA-256 of the token is stored.
 -- ------------------------------------------------------------
 CREATE TABLE password_resets (
     id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id    INT UNSIGNED NOT NULL,
-    token_hash VARCHAR(255) NOT NULL,
+    selector   CHAR(16)     NOT NULL,
+    token_hash CHAR(64)     NOT NULL,
     expires_at DATETIME NOT NULL,
     used_at    DATETIME NULL DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_password_resets_selector (selector),
     KEY idx_password_resets_user (user_id),
     CONSTRAINT fk_password_resets_user
         FOREIGN KEY (user_id) REFERENCES users (id)
@@ -51,7 +71,6 @@ CREATE TABLE password_resets (
 
 -- ------------------------------------------------------------
 -- categories — menu filter bar and seller add/edit dropdown.
--- The app has no screen to manage these, so they are seeded below.
 -- ------------------------------------------------------------
 CREATE TABLE categories (
     id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -64,6 +83,8 @@ CREATE TABLE categories (
 -- ------------------------------------------------------------
 -- food_items — seller/food_add.php, food_edit.php, food_toggle.php
 -- image_path holds only the filename inside uploads/food/.
+-- A meal that already appears in orders is archived (deleted_at)
+-- instead of deleted, so order history keeps its name and picture.
 -- ------------------------------------------------------------
 CREATE TABLE food_items (
     id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -74,6 +95,7 @@ CREATE TABLE food_items (
     price        DECIMAL(10, 2) NOT NULL,
     image_path   VARCHAR(255) NULL DEFAULT NULL,
     is_available TINYINT(1) NOT NULL DEFAULT 1,
+    deleted_at   DATETIME NULL DEFAULT NULL,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -113,28 +135,45 @@ CREATE TABLE cart (
 
 -- ------------------------------------------------------------
 -- orders — buyer/checkout.php, buyer/orders.php, seller/orders.php
+-- One order per seller. Payment is cash on delivery: the seller marks
+-- the order paid when the cash is received, and the buyer confirms
+-- that the food was received.
 -- ------------------------------------------------------------
 CREATE TABLE orders (
-    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    buyer_id     INT UNSIGNED NOT NULL,
-    total_amount DECIMAL(10, 2) NOT NULL,
-    status       ENUM('pending', 'confirmed', 'preparing',
-                      'out_for_delivery', 'delivered', 'cancelled')
-                 NOT NULL DEFAULT 'pending',
-    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    buyer_id         INT UNSIGNED NOT NULL,
+    seller_id        INT UNSIGNED NOT NULL,
+    total_amount     DECIMAL(10, 2) NOT NULL,
+    status           ENUM('pending', 'confirmed', 'preparing',
+                          'out_for_delivery', 'delivered', 'cancelled')
+                     NOT NULL DEFAULT 'pending',
+    payment_method   ENUM('cod') NOT NULL DEFAULT 'cod',
+    payment_status   ENUM('unpaid', 'paid') NOT NULL DEFAULT 'unpaid',
+    paid_at          DATETIME NULL DEFAULT NULL,
+    received_at      DATETIME NULL DEFAULT NULL,
+    cancelled_by     ENUM('buyer', 'seller') NULL DEFAULT NULL,
+    delivery_name    VARCHAR(200) NULL DEFAULT NULL,
+    delivery_phone   VARCHAR(30)  NULL DEFAULT NULL,
+    delivery_address VARCHAR(255) NULL DEFAULT NULL,
+    delivery_note    VARCHAR(255) NULL DEFAULT NULL,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_orders_buyer (buyer_id, created_at),
+    KEY idx_orders_seller (seller_id, created_at),
     KEY idx_orders_status (status),
+    CONSTRAINT chk_orders_total CHECK (total_amount >= 0),
     CONSTRAINT fk_orders_buyer
         FOREIGN KEY (buyer_id) REFERENCES users (id)
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_orders_seller
+        FOREIGN KEY (seller_id) REFERENCES users (id)
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- order_items — price_at_purchase locks the price at checkout.
--- RESTRICT on food_item_id keeps order history intact
--- (as described in seller/food_delete.php).
+-- RESTRICT on food_item_id keeps order history intact.
 -- ------------------------------------------------------------
 CREATE TABLE order_items (
     id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -155,8 +194,42 @@ CREATE TABLE order_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- auth_attempts — rate limiting for login and password reset
+-- ------------------------------------------------------------
+CREATE TABLE auth_attempts (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    action     VARCHAR(20)  NOT NULL,          -- 'login' or 'reset'
+    identifier VARCHAR(255) NOT NULL,          -- the email address entered
+    ip         VARCHAR(45)  NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_auth_attempts_identifier (action, identifier, created_at),
+    KEY idx_auth_attempts_ip (action, ip, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- contact_messages — contact.php saves every message here and then
+-- emails it to the team inbox (CONTACT_TO).
+-- ------------------------------------------------------------
+CREATE TABLE contact_messages (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id    INT UNSIGNED NULL DEFAULT NULL,
+    name       VARCHAR(200) NOT NULL,
+    email      VARCHAR(255) NOT NULL,
+    subject    VARCHAR(50)  NOT NULL,
+    message    TEXT         NOT NULL,
+    ip         VARCHAR(45)  NOT NULL,
+    emailed    TINYINT(1)   NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_contact_messages_created (created_at),
+    CONSTRAINT fk_contact_messages_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
 -- Seed data: categories (required — sellers must pick one)
--- Edit this list freely.
 -- ------------------------------------------------------------
 INSERT INTO categories (name) VALUES
     ('Vegetarian'),

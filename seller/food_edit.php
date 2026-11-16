@@ -2,44 +2,35 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/upload.php';
 require_role('seller');
 
 $page_title = 'Edit Food Item';
 $active_nav = 'dashboard';
 $extra_css  = ['seller.css'];
 
-$seller_id = $_SESSION['user_id'];
+$seller_id = (int)$_SESSION['user_id'];
 $item_id   = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
 
-// Load the item — verify it belongs to this seller 
-if ($item_id === 0) {
-    header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-    exit;
-}
-
+// Load the item — it must belong to this seller and not be archived
 $stmt = $pdo->prepare('
     SELECT fi.*, c.name AS category_name
     FROM food_items fi
     JOIN categories c ON fi.category_id = c.id
-    WHERE fi.id = ? AND fi.seller_id = ?
+    WHERE fi.id = ? AND fi.seller_id = ? AND fi.deleted_at IS NULL
 ');
 $stmt->execute([$item_id, $seller_id]);
 $item = $stmt->fetch();
 
-// Not found or doesn't belong to this seller
 if (!$item) {
-    $_SESSION['flash'] = [
-        'type'    => 'error',
-        'message' => 'Food item not found or you do not have permission to edit it.',
-    ];
-    header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-    exit;
+    flash('error', 'Food item not found or you do not have permission to edit it.');
+    redirect('seller/dashboard.php');
 }
 
-//  Fetch categories for dropdown 
+//  Fetch categories for dropdown
 $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
 
-//  Initialise fields from existing item 
+//  Initialise fields from existing item
 $errors = [];
 $fields = [
     'name'        => $item['name'],
@@ -51,121 +42,65 @@ $fields = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // 1. Sanitise
+    // 1. Read and validate
     $fields['name']         = trim($_POST['name']        ?? '');
     $fields['description']  = trim($_POST['description'] ?? '');
     $fields['price']        = trim($_POST['price']       ?? '');
     $fields['category_id']  = (int)($_POST['category_id']  ?? 0);
     $fields['is_available'] = isset($_POST['is_available']) ? 1 : 0;
+    $errors = validate_food_fields($pdo, $fields);
 
-    // 2. Validate
-    if (empty($fields['name'])) {
-        $errors['name'] = 'Food name is required.';
-    } elseif (strlen($fields['name']) > 200) {
-        $errors['name'] = 'Name must be under 200 characters.';
+    $image = check_food_image($_FILES['image'] ?? null);
+    if (isset($image['error'])) {
+        $errors['image'] = $image['error'];
     }
 
-    if (empty($fields['description'])) {
-        $errors['description'] = 'Description is required.';
-    }
+    // 2. Work out the new image, without touching the old file yet
+    $old_image  = $item['image_path'];
+    $image_path = $old_image;
+    $new_file   = null;
 
-    if ($fields['price'] === '') {
-        $errors['price'] = 'Price is required.';
-    } elseif (!is_numeric($fields['price']) || (float)$fields['price'] <= 0) {
-        $errors['price'] = 'Please enter a valid price greater than 0.';
-    }
-
-    if ($fields['category_id'] === 0) {
-        $errors['category_id'] = 'Please select a category.';
-    } else {
-        $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = ?');
-        $stmt->execute([$fields['category_id']]);
-        if (!$stmt->fetch()) {
-            $errors['category_id'] = 'Invalid category selected.';
-        }
-    }
-
-    // 3. Handle new image upload (optional on edit)
-    $image_path = $item['image_path']; // keep existing by default
-
-    if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $file = $_FILES['image'];
-
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $errors['image'] = 'Image upload failed. Please try again.';
+    if (empty($errors) && $image) {
+        $new_file = store_food_image($image);
+        if ($new_file === null) {
+            $errors['image'] = 'Failed to save image. Please try again.';
         } else {
-            $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            $finfo         = finfo_open(FILEINFO_MIME_TYPE);
-            $mime          = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-
-            if (!in_array($mime, $allowed_types)) {
-                $errors['image'] = 'Only JPG, PNG, WebP, or GIF images are allowed.';
-            } elseif ($file['size'] > 3 * 1024 * 1024) {
-                $errors['image'] = 'Image must be smaller than 3MB.';
-            } else {
-                $ext        = pathinfo($file['name'], PATHINFO_EXTENSION);
-                $filename   = uniqid('food_', true) . '.' . strtolower($ext);
-                $upload_dir = __DIR__ . '/../uploads/food/';
-
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-
-                if (!move_uploaded_file($file['tmp_name'], $upload_dir . $filename)) {
-                    $errors['image'] = 'Failed to save image. Please check folder permissions.';
-                } else {
-                    // Delete old image if it exists
-                    if ($item['image_path'] && file_exists($upload_dir . $item['image_path'])) {
-                        unlink($upload_dir . $item['image_path']);
-                    }
-                    $image_path = $filename;
-                }
-            }
+            $image_path = $new_file;
         }
-    }
-
-    // Handle "remove image" checkbox
-    if (isset($_POST['remove_image']) && !isset($_FILES['image']['error'])
-        || (isset($_POST['remove_image']) && $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE)) {
-        $upload_dir = __DIR__ . '/../uploads/food/';
-        if ($item['image_path'] && file_exists($upload_dir . $item['image_path'])) {
-            unlink($upload_dir . $item['image_path']);
-        }
+    } elseif (empty($errors) && isset($_POST['remove_image'])) {
         $image_path = null;
     }
 
-    // 4. Update if no errors
+    // 3. Update, then remove the old file only once the database has changed
     if (empty($errors)) {
-        $stmt = $pdo->prepare('
-            UPDATE food_items
-            SET
-                name         = ?,
-                description  = ?,
-                price        = ?,
-                category_id  = ?,
-                image_path   = ?,
-                is_available = ?
-            WHERE id = ? AND seller_id = ?
-        ');
-        $stmt->execute([
-            $fields['name'],
-            $fields['description'],
-            (float)$fields['price'],
-            $fields['category_id'],
-            $image_path,
-            $fields['is_available'],
-            $item_id,
-            $seller_id,
-        ]);
+        try {
+            $stmt = $pdo->prepare('
+                UPDATE food_items
+                SET name = ?, description = ?, price = ?, category_id = ?,
+                    image_path = ?, is_available = ?
+                WHERE id = ? AND seller_id = ?
+            ');
+            $stmt->execute([
+                $fields['name'],
+                $fields['description'],
+                $fields['price'],
+                $fields['category_id'],
+                $image_path,
+                $fields['is_available'],
+                $item_id,
+                $seller_id,
+            ]);
+        } catch (Throwable $e) {
+            delete_food_image($new_file);
+            throw $e;
+        }
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => '"' . $fields['name'] . '" has been updated successfully.',
-        ];
+        if ($old_image && $old_image !== $image_path) {
+            delete_food_image($old_image);
+        }
 
-        header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-        exit;
+        flash('success', '"' . $fields['name'] . '" has been updated successfully.');
+        redirect('seller/dashboard.php');
     }
 }
 
@@ -206,6 +141,7 @@ require_once __DIR__ . '/../includes/header.php';
         novalidate
         style="display:flex;flex-direction:column;gap:1.5rem;"
     >
+        <?= csrf_field() ?>
         <!-- Hidden item id -->
         <input type="hidden" name="id" value="<?= $item_id ?>" />
 

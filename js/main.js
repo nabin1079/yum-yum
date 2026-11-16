@@ -120,8 +120,9 @@
         );
     }
 
-    // Order status filter (buyer/orders.html, seller/orders.html)
-    const statusTabs = document.querySelectorAll('a[href^="?status="]');
+    // Order status filter. The PHP order pages filter on the server (their
+    // tabs have the class "order-tab"), so this only runs on pages without it.
+    const statusTabs = document.querySelectorAll('a[href^="?status="]:not(.order-tab)');
     if (statusTabs.length) {
         const activeStyle   = statusTabs[0].getAttribute('style');
         const inactiveStyle = statusTabs[1].getAttribute('style');
@@ -158,18 +159,4 @@
         );
     }
 
-    // No backend yet - forms just move to the next page
-    document.querySelectorAll('form[action="#"]').forEach(form => {
-        form.addEventListener('submit', e => {
-            e.preventDefault();
-
-            const role = form.querySelector('input[name="role"]:checked');
-            if (role && role.value === 'seller') {
-                window.location.href = '../seller/dashboard.html';
-                return;
-            }
-
-            if (form.dataset.next) window.location.href = form.dataset.next;
-        });
-    });
 })();

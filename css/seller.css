@@ -210,6 +210,12 @@
   color: #dc2626;
 }
 
+.seller-alert--info {
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #1d4ed8;
+}
+
 .seller-alert .material-symbols-outlined {
   font-size: 1.1rem;
   font-variation-settings: "FILL" 1;
@@ -553,4 +559,10 @@ select.seller-input {
   border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.seller-hint {
+  font-size: 0.8125rem;
+  color: var(--sage);
+  font-weight: 500;
 }

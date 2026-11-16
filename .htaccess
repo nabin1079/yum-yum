@@ -1,0 +1,30 @@
+# Apache settings for Yum-Yum (XAMPP and most shared hosting).
+
+Options -Indexes
+DirectoryIndex index.php
+
+# Friendly page for addresses that do not exist.
+# If the site is not at /yum-yum/, change this path to match BASE_PATH.
+ErrorDocument 404 /yum-yum/404.php
+
+# Never serve internal folders or files directly.
+RedirectMatch 404 ^/(?:.*/)?(config|includes|database|storage|tools)(/|$)
+RedirectMatch 404 /\.(git|env)
+<FilesMatch "\.(sql|md|log|sh|bak|ini|lock)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# Upload limit: images are limited to 3 MB by the app.
+<IfModule mod_php.c>
+    php_value upload_max_filesize 4M
+    php_value post_max_size 8M
+</IfModule>
+
+# To force HTTPS on a live server with a certificate, uncomment:
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

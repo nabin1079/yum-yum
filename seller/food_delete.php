@@ -2,64 +2,63 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/upload.php';
 require_role('seller');
 
 // POST only — reject any GET requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-    exit;
+    redirect('seller/dashboard.php');
 }
 
 $item_id   = (int)($_POST['id'] ?? 0);
-$seller_id = $_SESSION['user_id'];
+$seller_id = (int)$_SESSION['user_id'];
 
-if ($item_id === 0) {
-    header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-    exit;
-}
-
-//  Fetch the item to verify ownership & get image path 
+// The item must exist, belong to this seller and not be archived already
 $stmt = $pdo->prepare('
     SELECT id, name, image_path
     FROM food_items
-    WHERE id = ? AND seller_id = ?
+    WHERE id = ? AND seller_id = ? AND deleted_at IS NULL
 ');
 $stmt->execute([$item_id, $seller_id]);
 $item = $stmt->fetch();
 
 if (!$item) {
-    // Item not found or doesn't belong to this seller
-    $_SESSION['flash'] = [
-        'type'    => 'error',
-        'message' => 'Item not found or you do not have permission to delete it.',
-    ];
-    header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-    exit;
+    flash('error', 'Item not found or you do not have permission to delete it.');
+    redirect('seller/dashboard.php');
 }
 
-//  Delete the image file from disk 
-if ($item['image_path']) {
-    $image_file = __DIR__ . '/../uploads/food/' . $item['image_path'];
-    if (file_exists($image_file)) {
-        unlink($image_file);
-    }
+// Remove it from every buyer's cart in both cases
+$pdo->prepare('DELETE FROM cart WHERE food_item_id = ?')->execute([$item_id]);
+
+$stmt = $pdo->prepare('SELECT COUNT(*) FROM order_items WHERE food_item_id = ?');
+$stmt->execute([$item_id]);
+$has_orders = (int)$stmt->fetchColumn() > 0;
+
+if ($has_orders) {
+    // Past orders need this meal's name and picture, so archive it instead.
+    $pdo->prepare('
+        UPDATE food_items SET deleted_at = NOW(), is_available = 0
+        WHERE id = ? AND seller_id = ?
+    ')->execute([$item_id, $seller_id]);
+
+    flash('success', '"' . $item['name'] . '" has been removed from your menu. It stays in past orders so your order history is kept.');
+    redirect('seller/dashboard.php');
 }
 
-// Delete from database 
-// order_items rows referencing this food_item will be kept
-// (ON DELETE RESTRICT) so historical orders stay intact.
-// We just delete the food_items row itself.
-$stmt = $pdo->prepare('
-    DELETE FROM food_items
-    WHERE id = ? AND seller_id = ?
-');
-$stmt->execute([$item_id, $seller_id]);
+try {
+    $pdo->prepare('DELETE FROM food_items WHERE id = ? AND seller_id = ?')
+        ->execute([$item_id, $seller_id]);
+} catch (PDOException $e) {
+    // An order was placed for it a moment ago — archive instead.
+    error_log('food_delete fell back to archive: ' . $e->getMessage());
+    $pdo->prepare('UPDATE food_items SET deleted_at = NOW(), is_available = 0 WHERE id = ? AND seller_id = ?')
+        ->execute([$item_id, $seller_id]);
+    flash('success', '"' . $item['name'] . '" has been removed from your menu.');
+    redirect('seller/dashboard.php');
+}
 
-//  Flash and redirect 
-$_SESSION['flash'] = [
-    'type'    => 'success',
-    'message' => '"' . $item['name'] . '" has been deleted from your menu.',
-];
+// The row is gone, so the image can be deleted safely now.
+delete_food_image($item['image_path']);
 
-header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-exit;
+flash('success', '"' . $item['name'] . '" has been deleted from your menu.');
+redirect('seller/dashboard.php');

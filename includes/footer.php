@@ -66,11 +66,11 @@
                 &copy; <?= date('Y') ?> Yum-Yum Tiffin Services. All rights reserved.
             </p>
             <div style="display:flex;gap:1.25rem;">
-                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                <a href="<?= BASE_PATH ?>privacy.php" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
                    onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Privacy Policy</a>
-                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                <a href="<?= BASE_PATH ?>terms.php" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
                    onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Terms of Service</a>
-                <a href="#" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
+                <a href="<?= BASE_PATH ?>contact.php" style="font-size:0.8125rem;font-weight:600;color:var(--sage);text-decoration:none;transition:color 0.15s ease;"
                    onmouseover="this.style.color='var(--earth)'" onmouseout="this.style.color='var(--sage)'">Help Center</a>
             </div>
         </div>

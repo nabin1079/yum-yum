@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/orders.php';
 
 $page_title = 'Menu';
 $active_nav = 'menu';
@@ -25,7 +26,13 @@ $order_by = match($sort) {
 $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
 
 //  Fetch food items (filtered + sorted) 
-$where = 'WHERE fi.is_available = 1';
+$where = 'WHERE fi.is_available = 1 AND fi.deleted_at IS NULL';
+
+// Name of the selected category (empty if the id does not exist)
+$selected_name = '';
+foreach ($categories as $c) {
+    if ((int)$c['id'] === $selected_category) $selected_name = $c['name'];
+}
 $params = [];
 
 if ($selected_category > 0) {
@@ -43,7 +50,8 @@ $stmt = $pdo->prepare("
         c.id   AS category_id,
         c.name AS category,
         u.first_name AS seller_first,
-        u.last_name  AS seller_last
+        u.last_name  AS seller_last,
+        u.kitchen_name AS seller_kitchen
     FROM food_items fi
     JOIN categories c ON fi.category_id = c.id
     JOIN users      u ON fi.seller_id   = u.id
@@ -67,9 +75,7 @@ require_once __DIR__ . '/../includes/header.php';
         </h1>
         <p style="color:var(--sage);font-size:0.9375rem;font-weight:500;">
             <?= $total_count ?> meal<?= $total_count !== 1 ? 's' : '' ?> available
-            <?= $selected_category > 0 ? '· filtered by <strong>' . htmlspecialchars(
-                array_values(array_filter($categories, fn($c) => $c['id'] == $selected_category))[0]['name'] ?? ''
-            ) . '</strong>' : '' ?>
+            <?= $selected_name !== '' ? '· filtered by <strong>' . e($selected_name) . '</strong>' : '' ?>
         </p>
     </div>
 
@@ -188,7 +194,7 @@ require_once __DIR__ . '/../includes/header.php';
                                       style="font-size:0.875rem;vertical-align:middle;font-variation-settings:'FILL' 1;">
                                     storefront
                                 </span>
-                                <?= htmlspecialchars($item['seller_first'] . ' ' . $item['seller_last']) ?>
+                                <?= e(seller_display_name($item)) ?>
                             </span>
                             <span class="menu-card__btn">View →</span>
                         </div>

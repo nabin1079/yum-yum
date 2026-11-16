@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/upload.php';
 require_role('seller');
 
 $page_title = 'Add New Food';
@@ -16,111 +17,59 @@ $fields = [
     'category_id' => '',
 ];
 
-//  Fetch categories for dropdown 
+//  Fetch categories for dropdown
 $categories = $pdo->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
 
 //  POST — process form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // 1. Sanitise text fields
+    // 1. Read and validate the text fields
     $fields['name']        = trim($_POST['name']        ?? '');
     $fields['description'] = trim($_POST['description'] ?? '');
     $fields['price']       = trim($_POST['price']       ?? '');
     $fields['category_id'] = (int)($_POST['category_id'] ?? 0);
+    $errors = validate_food_fields($pdo, $fields);
 
-    // 2. Validate
-    if (empty($fields['name'])) {
-        $errors['name'] = 'Food name is required.';
-    } elseif (strlen($fields['name']) > 200) {
-        $errors['name'] = 'Name must be under 200 characters.';
+    // 2. Check the image (saved only if everything else is valid)
+    $image = check_food_image($_FILES['image'] ?? null);
+    if (isset($image['error'])) {
+        $errors['image'] = $image['error'];
     }
 
-    if (empty($fields['description'])) {
-        $errors['description'] = 'Description is required.';
-    }
-
-    if ($fields['price'] === '') {
-        $errors['price'] = 'Price is required.';
-    } elseif (!is_numeric($fields['price']) || (float)$fields['price'] <= 0) {
-        $errors['price'] = 'Please enter a valid price greater than 0.';
-    }
-
-    if ($fields['category_id'] === 0) {
-        $errors['category_id'] = 'Please select a category.';
-    } else {
-        // Verify category exists
-        $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = ?');
-        $stmt->execute([$fields['category_id']]);
-        if (!$stmt->fetch()) {
-            $errors['category_id'] = 'Invalid category selected.';
-        }
-    }
-
-    // 3. Handle image upload
-    $image_path = null;
-
-    if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $file = $_FILES['image'];
-
-        // Check for upload errors
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $errors['image'] = 'Image upload failed. Please try again.';
-        } else {
-            // Validate file type
-            $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            $finfo         = finfo_open(FILEINFO_MIME_TYPE);
-            $mime          = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-
-            if (!in_array($mime, $allowed_types)) {
-                $errors['image'] = 'Only JPG, PNG, WebP, or GIF images are allowed.';
-            } elseif ($file['size'] > 3 * 1024 * 1024) {
-                // Max 3MB
-                $errors['image'] = 'Image must be smaller than 3MB.';
-            } else {
-                // Generate a unique filename
-                $ext        = pathinfo($file['name'], PATHINFO_EXTENSION);
-                $filename   = uniqid('food_', true) . '.' . strtolower($ext);
-                $upload_dir = __DIR__ . '/../uploads/food/';
-
-                // Create uploads/food/ if it doesn't exist
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-
-                if (!move_uploaded_file($file['tmp_name'], $upload_dir . $filename)) {
-                    $errors['image'] = 'Failed to save image. Please check folder permissions.';
-                } else {
-                    $image_path = $filename;
-                }
+    // 3. Save
+    if (empty($errors)) {
+        $image_path = null;
+        if ($image) {
+            $image_path = store_food_image($image);
+            if ($image_path === null) {
+                $errors['image'] = 'Failed to save image. Please try again.';
             }
         }
     }
 
-    // 4. Insert if no errors
     if (empty($errors)) {
-        $stmt = $pdo->prepare('
-            INSERT INTO food_items
-                (seller_id, category_id, name, description, price, image_path, is_available, created_at)
-            VALUES
-                (?, ?, ?, ?, ?, ?, 1, NOW())
-        ');
-        $stmt->execute([
-            $_SESSION['user_id'],
-            $fields['category_id'],
-            $fields['name'],
-            $fields['description'],
-            (float)$fields['price'],
-            $image_path,
-        ]);
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO food_items
+                    (seller_id, category_id, name, description, price, image_path, is_available)
+                VALUES
+                    (?, ?, ?, ?, ?, ?, 1)
+            ');
+            $stmt->execute([
+                $_SESSION['user_id'],
+                $fields['category_id'],
+                $fields['name'],
+                $fields['description'],
+                $fields['price'],
+                $image_path,
+            ]);
+        } catch (Throwable $e) {
+            delete_food_image($image_path);   // do not leave an orphan file
+            throw $e;
+        }
 
-        $_SESSION['flash'] = [
-            'type'    => 'success',
-            'message' => '"' . $fields['name'] . '" has been added to your menu.',
-        ];
-
-        header('Location: ' . BASE_PATH . 'seller/dashboard.php');
-        exit;
+        flash('success', '"' . $fields['name'] . '" has been added to your menu.');
+        redirect('seller/dashboard.php');
     }
 }
 
@@ -162,6 +111,7 @@ require_once __DIR__ . '/../includes/header.php';
         novalidate
         style="display:flex;flex-direction:column;gap:1.5rem;"
     >
+        <?= csrf_field() ?>
 
         <!-- Card: Basic Info -->
         <div class="seller-form-card">

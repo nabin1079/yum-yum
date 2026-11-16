@@ -1,64 +1,71 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/auth-guard.php';
+require_once __DIR__ . '/../includes/mailer.php';
 
-$error = '';
+$error   = '';
 $message = '';
+$invalid = '';
 
-$token = $_GET['token'] ?? $_POST['token'] ?? '';
-$uid = (int)($_GET['uid'] ?? $_POST['uid'] ?? 0);
+$selector = (string)($_GET['selector'] ?? $_POST['selector'] ?? '');
+$token    = (string)($_GET['token']    ?? $_POST['token']    ?? '');
 
-if (!$token || !$uid) {
-    die('Invalid reset link.');
+// Look up the request by its selector, then compare the secret token
+// in constant time. Expiry is checked by the database clock.
+$reset = null;
+if (preg_match('/^[a-f0-9]{16}$/', $selector) && preg_match('/^[a-f0-9]{64}$/', $token)) {
+    $stmt = $pdo->prepare('
+        SELECT pr.id, pr.user_id, pr.token_hash, pr.used_at,
+               pr.expires_at <= NOW() AS expired,
+               u.email, u.first_name
+        FROM password_resets pr
+        JOIN users u ON u.id = pr.user_id
+        WHERE pr.selector = ?
+        LIMIT 1
+    ');
+    $stmt->execute([$selector]);
+    $reset = $stmt->fetch() ?: null;
 }
 
-$stmt = $pdo->prepare("
-    SELECT id, token_hash, expires_at, used_at
-    FROM password_resets
-    WHERE user_id = ?
-    ORDER BY id DESC
-    LIMIT 1
-");
-$stmt->execute([$uid]);
-$reset = $stmt->fetch();
-
-if (!$reset) {
-    die('Reset request not found.');
+if (!$reset || !hash_equals($reset['token_hash'], hash('sha256', $token))) {
+    $invalid = 'This reset link is not valid. Please request a new one.';
+} elseif ($reset['used_at'] !== null) {
+    $invalid = 'This reset link has already been used. Please request a new one if you still need it.';
+} elseif ((int)$reset['expired'] === 1) {
+    $invalid = 'This reset link has expired. Reset links work for 1 hour.';
 }
 
-if ($reset['used_at'] !== null) {
-    die('This reset link has already been used.');
-}
+if (!$invalid && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $password        = (string)($_POST['password'] ?? '');
+    $confirmPassword = (string)($_POST['confirm_password'] ?? '');
 
-if (strtotime($reset['expires_at']) < time()) {
-    die('This reset link has expired.');
-}
-
-if (!password_verify($token, $reset['token_hash'])) {
-    die('Invalid reset token.');
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-
-    if (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters.';
+    if ($problem = password_problem($password)) {
+        $error = $problem;
     } elseif ($password !== $confirmPassword) {
         $error = 'Passwords do not match.';
     } else {
-        $newHash = password_hash($password, PASSWORD_DEFAULT);
         $pdo->beginTransaction();
         try {
-            $upUser = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
-            $upUser->execute([$newHash, $uid]);
-            $upReset = $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE id = ?");
-            $upReset->execute([$reset['id']]);
+            $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+                ->execute([password_hash($password, PASSWORD_DEFAULT), $reset['user_id']]);
+            $pdo->prepare('UPDATE password_resets SET used_at = NOW() WHERE id = ?')
+                ->execute([$reset['id']]);
+            $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND id <> ?')
+                ->execute([$reset['user_id'], $reset['id']]);
             $pdo->commit();
-            $message = 'Password updated successfully. You can now log in.';
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $pdo->rollBack();
-            $error = 'Something went wrong. Please try again.';
+            throw $e;
         }
+        clear_attempts($pdo, 'login', $reset['email']);
+        send_mail(
+            $reset['email'],
+            'Your Yum-Yum password was changed',
+            "Hi {$reset['first_name']},\n\nThe password for your Yum-Yum account was just changed.\n\n"
+            . "If this was you, there is nothing else to do.\n"
+            . "If it was not you, reset your password straight away at " . APP_URL . "/auth/forgot-password.php and contact us.\n\nYum-Yum"
+        );
+        $message = 'Password updated successfully. You can now log in with your new password.';
     }
 }
 ?>
@@ -91,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
             <div class="auth-visual__hero">
                 <h1 class="auth-visual__heading">Set a new <em>strong password.</em></h1>
-                <p class="auth-visual__subtext">Make it at least 6 characters and something only you would know.</p>
+                <p class="auth-visual__subtext">Use at least 8 characters with letters and a number.</p>
             </div>
             <div></div>
         </div>
@@ -124,6 +131,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </a>
                 </div>
 
+            <?php elseif ($invalid): ?>
+                <div style="text-align:center;padding:1rem 0;">
+                    <div style="width:5rem;height:5rem;background:rgba(239,68,68,0.08);border-radius:9999px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                        <span class="material-symbols-outlined" style="font-size:2.5rem;color:#dc2626;">link_off</span>
+                    </div>
+                    <h2 class="auth-heading" style="text-align:center;">Link not valid</h2>
+                    <p style="color:var(--sage);font-size:0.9375rem;line-height:1.7;margin-bottom:2rem;"><?= e($invalid) ?></p>
+                    <a href="<?= BASE_PATH ?>auth/forgot-password.php"
+                       style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--primary);color:var(--earth);padding:0.875rem 2rem;border-radius:var(--radius-xl);font-weight:800;text-decoration:none;">
+                        <span class="material-symbols-outlined">mail</span>
+                        Request a new link
+                    </a>
+                </div>
+
             <?php else: ?>
 
                 <h2 class="auth-heading">Reset Password</h2>
@@ -137,8 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form class="auth-form" method="POST" action="">
-                    <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>" />
-                    <input type="hidden" name="uid"   value="<?= $uid ?>" />
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="selector" value="<?= e($selector) ?>" />
+                    <input type="hidden" name="token"    value="<?= e($token) ?>" />
 
                     <div class="auth-form__group">
                         <label class="auth-label" for="password">New Password</label>
@@ -149,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 type="password"
                                 id="password"
                                 name="password"
-                                placeholder="At least 6 characters"
+                                placeholder="8+ characters, letters and a number"
                                 autocomplete="new-password"
                                 required
                             />
@@ -195,9 +217,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <footer class="auth-footer">
-            <a href="#">Help Center</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+            <a href="<?= BASE_PATH ?>contact.php">Help Center</a>
+            <a href="<?= BASE_PATH ?>privacy.php">Privacy Policy</a>
+            <a href="<?= BASE_PATH ?>terms.php">Terms of Service</a>
         </footer>
 
     </main>
